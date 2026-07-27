@@ -116,6 +116,12 @@
     <string name="advanced">Advanced</string>
     <string name="advanced_mode">Advanced mode</string>
     <string name="advanced_mode_description">Manually choose a kernel and firmware profile during installation</string>
+    <string name="about">About</string>
+    <string name="fork_notice">Root My Device is a fork of Root My Galaxy by BuSung-dev, used under the Apache License 2.0.</string>
+    <string name="fork_upstream_app">Root My Galaxy</string>
+    <string name="fork_upstream_app_description">The original application this app is forked from</string>
+    <string name="fork_upstream_payloads">Root My Galaxy Payloads</string>
+    <string name="fork_upstream_payloads_description">The original device feed and native payloads</string>
     <string name="repo_profile_missing">Support profile %1$s is no longer available</string>
     <string name="select_device_title">Choose a support profile</string>
     <string name="select_device_description">Select the kernel and firmware profile to use for this installation.</string>

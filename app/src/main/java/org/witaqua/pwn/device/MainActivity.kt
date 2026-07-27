@@ -796,6 +796,7 @@ private fun SettingsPage(
     onAdvancedModeChanged: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showColorDialog by remember { mutableStateOf(false) }
     var languageMenuTop by remember { mutableStateOf(32.dp) }
@@ -888,6 +889,36 @@ private fun SettingsPage(
                     checked = advancedMode,
                     position = SettingsCardPosition.GroupedSingle,
                     onCheckedChange = onAdvancedModeChanged,
+                )
+            }
+        }
+        // This app is a fork; the licence requires the original to be credited,
+        // and someone deciding whether to trust it should be able to reach the
+        // project it came from without leaving the app.
+        item { SectionLabel(stringResource(R.string.about)) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                SettingsCard(
+                    icon = Icons.Rounded.Link,
+                    title = stringResource(R.string.fork_upstream_app),
+                    description = stringResource(R.string.fork_upstream_app_description),
+                    value = UPSTREAM_OWNER,
+                    position = SettingsCardPosition.Top,
+                    onClick = { uriHandler.openUri(UPSTREAM_APP_URL) },
+                )
+                SettingsCard(
+                    icon = Icons.Rounded.Link,
+                    title = stringResource(R.string.fork_upstream_payloads),
+                    description = stringResource(R.string.fork_upstream_payloads_description),
+                    value = UPSTREAM_OWNER,
+                    position = SettingsCardPosition.Bottom,
+                    onClick = { uriHandler.openUri(UPSTREAM_PAYLOADS_URL) },
+                )
+                Text(
+                    stringResource(R.string.fork_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 18.dp, end = 18.dp, top = 10.dp),
                 )
             }
         }
@@ -1378,6 +1409,11 @@ private fun SideChoiceMenu(
 private const val MENU_EXIT_ANIMATION_MILLIS = 180
 private const val MENU_EXIT_WAIT_MILLIS = 200L
 private const val ROOT_MY_DEVICE_URL = "https://github.com/Witaqua-tools/Root-My-Device"
+
+// The projects this one is forked from, credited in Settings > About.
+private const val UPSTREAM_OWNER = "BuSung-dev"
+private const val UPSTREAM_APP_URL = "https://github.com/$UPSTREAM_OWNER/Root-My-Galaxy"
+private const val UPSTREAM_PAYLOADS_URL = "https://github.com/$UPSTREAM_OWNER/Root-My-Galaxy-Payloads"
 
 @Composable
 private fun languageLabel(tag: String): String = when {

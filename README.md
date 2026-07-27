@@ -1,5 +1,10 @@
 # Root My Device
 
+A fork of [BuSung-dev/Root-My-Galaxy](https://github.com/BuSung-dev/Root-My-Galaxy),
+the work of [BuSung-dev](https://github.com/BuSung-dev). This repository keeps
+the original Apache License 2.0 — see [LICENSE](LICENSE). The payload side is a
+fork of [BuSung-dev/Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads).
+
 <img width="108" height="108" alt="sprout_icon_108" src="https://github.com/user-attachments/assets/2ba0e360-0876-489c-b256-f75df7589785" />
 
 

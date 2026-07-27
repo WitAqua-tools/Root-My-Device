@@ -26,4 +26,5 @@
     <string name="select_device_title">지원 프로필 선택</string><string name="select_device_description">이번 설치에 사용할 커널과 펌웨어 프로필을 선택합니다.</string><string name="show_my_kernel_only">내 커널만 보기</string><string name="no_matching_kernels">이 커널에 맞는 프로필이 없습니다.</string>
     <string name="kernel_mismatch_title">커널이 일치하지 않습니다</string><string name="kernel_mismatch_body">현재 커널은 %1$s이지만 선택한 프로필의 커널은 %2$s입니다. 실행하면 기기가 멈추거나 손상될 수 있습니다.</string>
     <string name="build_mismatch_title">빌드가 일치하지 않습니다</string><string name="build_mismatch_body">현재 빌드는 %1$s이지만 선택한 프로필은 %2$s용입니다. 오프셋이 호환되지 않을 수 있습니다.</string>
+    <string name="about">정보</string><string name="fork_notice">Root My Device는 BuSung-dev의 Root My Galaxy를 포크한 것으로, Apache License 2.0에 따라 사용합니다.</string><string name="fork_upstream_app" translatable="false">Root My Galaxy</string><string name="fork_upstream_app_description">이 앱이 포크한 원본 애플리케이션</string><string name="fork_upstream_payloads" translatable="false">Root My Galaxy Payloads</string><string name="fork_upstream_payloads_description">원본 기기 목록과 네이티브 payload</string>
 </resources>
