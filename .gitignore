@@ -6,3 +6,6 @@ local.properties
 **/build/
 captures/
 *.iml
+
+# release signing key — supplied by CI from the STORE_FILE secret, never committed
+app/release.jks

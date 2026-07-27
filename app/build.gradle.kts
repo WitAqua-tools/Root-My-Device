@@ -6,6 +6,10 @@ plugins {
 android {
     namespace = "dev.busung.s25uroot"
     compileSdk = 37
+    // Pinned rather than left to AGP's default so a checkout and CI compile the
+    // native probe with the same toolchain. This is what AGP 9.2.1 selects on
+    // its own today; CI installs exactly it.
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "dev.busung.s25uroot"
@@ -22,6 +26,45 @@ android {
         externalNativeBuild {
             cmake {
                 arguments += "-DANDROID_STL=none"
+            }
+        }
+    }
+
+    signingConfigs {
+        // app/android.jks is the publicly known AOSP debug key (CN=Android,
+        // alias and every password "android"). It is committed on purpose so
+        // that debug builds from CI and from a checkout carry the same
+        // signature and install over each other.
+        //
+        // It is NOT a release key and must never become one: the private key is
+        // public, so anyone could sign an update over an app signed with it.
+        create("android") {
+            storeFile = file("android.jks")
+            storePassword = "android"
+            keyAlias = "android"
+            keyPassword = "android"
+        }
+        // Real releases are signed with a key that is not in the repository.
+        // CI writes app/release.jks from the STORE_FILE secret; the config only
+        // exists when that file does, so an unsigned-release build is a plain
+        // unsigned APK rather than a build failure.
+        if (file("release.jks").exists()) {
+            create("release") {
+                storeFile = file("release.jks")
+                storePassword = System.getenv("STORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("android")
+        }
+        getByName("release") {
+            if (file("release.jks").exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }
