@@ -1,4 +1,4 @@
-package dev.busung.s25uroot
+package org.witaqua.pwn.device
 
 import android.os.Bundle
 import android.view.WindowManager
@@ -53,7 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.busung.s25uroot.ui.theme.RootMyGalaxyTheme
+import org.witaqua.pwn.device.ui.theme.RootMyDeviceTheme
 import kotlinx.coroutines.delay
 
 class InstallActivity : ComponentActivity() {
@@ -70,7 +70,7 @@ class InstallActivity : ComponentActivity() {
         )
         intent.removeExtra(EXTRA_INSTALL_REQUEST_ID)
         setContent {
-            RootMyGalaxyTheme(
+            RootMyDeviceTheme(
                 accentColor = AppPreferences.accentColor(this),
                 themeMode = AppPreferences.themeMode(this),
             ) {

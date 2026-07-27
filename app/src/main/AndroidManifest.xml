@@ -9,7 +9,7 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.S25URoot">
+        android:theme="@style/Theme.RootMyDevice">
         <activity
             android:name=".InstallActivity"
             android:exported="false" />

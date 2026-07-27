@@ -1,4 +1,4 @@
-package dev.busung.s25uroot
+package org.witaqua.pwn.device
 
 import android.content.Context
 import android.util.AtomicFile

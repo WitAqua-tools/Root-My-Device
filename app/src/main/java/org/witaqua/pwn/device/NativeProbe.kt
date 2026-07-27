@@ -1,8 +1,8 @@
-package dev.busung.s25uroot
+package org.witaqua.pwn.device
 
 object NativeProbe {
     init {
-        System.loadLibrary("s25u_native")
+        System.loadLibrary("witaqua_native")
     }
 
     external fun run(): String

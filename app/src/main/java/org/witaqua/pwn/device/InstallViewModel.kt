@@ -1,4 +1,4 @@
-package dev.busung.s25uroot
+package org.witaqua.pwn.device
 
 import android.app.Application
 import android.os.SystemClock

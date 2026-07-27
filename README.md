@@ -1,17 +1,22 @@
-# Root My Galaxy
+# Root My Device
 
 <img width="108" height="108" alt="sprout_icon_108" src="https://github.com/user-attachments/assets/2ba0e360-0876-489c-b256-f75df7589785" />
 
 
-Root My Galaxy is a one-click installer for explicitly
-supported Samsung firmware builds. The application itself is kept separate
+Root My Device is a one-click installer for explicitly
+supported firmware builds. The application itself is kept separate
 from device offsets, native exploit payloads, and KernelSU build artifacts.
 
 
-[Latest release](https://github.com/BuSung-dev/Root-My-Galaxy/releases)
+[Latest release](https://github.com/Witaqua-tools/Root-My-Device/releases)
 
 The device feed and native payloads are maintained in
-[Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads).
+[Root-My-Device-Payloads](https://github.com/Witaqua-tools/Root-My-Device-Payloads).
+Every push to its `main` branch builds the payloads and publishes them as a
+GitHub release under a tag unique to that run. The app resolves that
+repository's `releases/latest`, reads the `targets-v2.json` asset from it, and
+downloads every artifact named in it — so the set of payloads it installs is
+immutable once published, and nothing is committed as a binary.
 
 ## Application
 

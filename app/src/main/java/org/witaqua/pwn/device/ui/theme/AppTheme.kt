@@ -1,4 +1,4 @@
-package dev.busung.s25uroot.ui.theme
+package org.witaqua.pwn.device.ui.theme
 
 import android.app.Activity
 import android.content.Context
@@ -18,8 +18,8 @@ import androidx.core.view.WindowCompat
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
-import dev.busung.s25uroot.AccentColor
-import dev.busung.s25uroot.AppThemeMode
+import org.witaqua.pwn.device.AccentColor
+import org.witaqua.pwn.device.AppThemeMode
 
 private val AppTypography = Typography(
     displaySmall = TextStyle(fontSize = 38.sp, lineHeight = 44.sp, fontWeight = FontWeight.Light),
@@ -44,7 +44,7 @@ private fun accentSeed(context: Context, accentColor: AccentColor): Color = when
 }
 
 @Composable
-fun RootMyGalaxyTheme(
+fun RootMyDeviceTheme(
     accentColor: AccentColor,
     themeMode: AppThemeMode,
     content: @Composable () -> Unit,

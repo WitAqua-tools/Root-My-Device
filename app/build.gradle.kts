@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.busung.s25uroot"
+    namespace = "org.witaqua.pwn.device"
     compileSdk = 37
     // Pinned rather than left to AGP's default so a checkout and CI compile the
     // native probe with the same toolchain. This is what AGP 9.2.1 selects on
@@ -12,7 +12,7 @@ android {
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "dev.busung.s25uroot"
+        applicationId = "org.witaqua.pwn.device"
         minSdk = 33
         targetSdk = 36
         versionCode = 8

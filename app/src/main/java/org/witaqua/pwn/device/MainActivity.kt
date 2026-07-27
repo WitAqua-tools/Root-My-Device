@@ -1,4 +1,4 @@
-package dev.busung.s25uroot
+package org.witaqua.pwn.device
 
 import android.content.Intent
 import android.os.Bundle
@@ -121,7 +121,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.busung.s25uroot.ui.theme.RootMyGalaxyTheme
+import org.witaqua.pwn.device.ui.theme.RootMyDeviceTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -142,7 +142,7 @@ class MainActivity : ComponentActivity() {
         themeMode = AppPreferences.themeMode(this)
         advancedMode = AppPreferences.advancedMode(this)
         setContent {
-            RootMyGalaxyTheme(accentColor = accentColor, themeMode = themeMode) {
+            RootMyDeviceTheme(accentColor = accentColor, themeMode = themeMode) {
                 RootApp(
                     installViewModel = installViewModel,
                     accentColor = accentColor,
@@ -511,7 +511,7 @@ private fun GitHubCard() {
     val interactionSource = remember { MutableInteractionSource() }
     val uriHandler = LocalUriHandler.current
     Card(
-        onClick = { uriHandler.openUri(ROOT_MY_GALAXY_URL) },
+        onClick = { uriHandler.openUri(ROOT_MY_DEVICE_URL) },
         modifier = Modifier.fillMaxWidth(),
         shape = expressiveClickableCardShape(interactionSource),
         interactionSource = interactionSource,
@@ -1377,7 +1377,7 @@ private fun SideChoiceMenu(
 
 private const val MENU_EXIT_ANIMATION_MILLIS = 180
 private const val MENU_EXIT_WAIT_MILLIS = 200L
-private const val ROOT_MY_GALAXY_URL = "https://github.com/BuSung-dev/Root-My-Galaxy"
+private const val ROOT_MY_DEVICE_URL = "https://github.com/Witaqua-tools/Root-My-Device"
 
 @Composable
 private fun languageLabel(tag: String): String = when {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Root My Galaxy</string>
+    <string name="app_name">Root My Device</string>
     <string name="nav_overview">Home</string>
     <string name="nav_history">History</string>
     <string name="nav_settings">Settings</string>
@@ -108,7 +108,7 @@
     <string name="repo_url_invalid">The artifact repository is not allowed</string>
     <string name="repo_response_too_large">The response exceeded its size limit</string>
     <string name="open_github">Open GitHub</string>
-    <string name="github_card_title">Explore Root My Galaxy</string>
+    <string name="github_card_title">Explore Root My Device</string>
     <string name="github_card_description">View the source code and usage instructions.</string>
     <string name="action_continue">Continue anyway</string>
     <string name="action_next">Next</string>

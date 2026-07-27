@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RootMyGalaxy"
+rootProject.name = "RootMyDevice"
 include(":app")
