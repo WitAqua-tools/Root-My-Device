@@ -65,7 +65,7 @@
     <string name="step_ksu_detail">Late-load module and verify control channel</string>
     <string name="phase_checking">Checking the supported device and firmware</string>
     <string name="phase_ready">Ready to install</string>
-    <string name="phase_downloading">Downloading commit-pinned payloads from GitHub</string>
+    <string name="phase_downloading">Downloading release-pinned payloads from GitHub</string>
     <string name="phase_exploiting">This may take 10 minutes or longer. Your device may become hot or stop responding.</string>
     <string name="phase_loading_ksu">Loading KernelSU with the acquired bootstrap root</string>
     <string name="phase_installed">KernelSU module and control channel verified</string>
@@ -104,7 +104,8 @@
     <string name="repo_incomplete">%1$s download is incomplete</string>
     <string name="repo_finalize_failed">Unable to finalize the %1$s file</string>
     <string name="repo_verified">%1$s verified</string>
-    <string name="repo_commit_invalid">GitHub returned an invalid commit SHA</string>
+    <string name="repo_release_invalid">GitHub returned an invalid payload release</string>
+    <string name="repo_feed_missing">The payload release has no %1$s asset</string>
     <string name="repo_url_invalid">The artifact repository is not allowed</string>
     <string name="repo_response_too_large">The response exceeded its size limit</string>
     <string name="open_github">Open GitHub</string>
