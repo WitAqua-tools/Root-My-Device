@@ -104,6 +104,7 @@ jobs:
       # committed AOSP key; a release APK must not.
       - name: Verify signature
         run: |
+          set -o pipefail
           apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           if [ "${{ github.event.inputs.release }}" = "true" ]; then
             apk="${{ env.repo }}-${{ env.version }}.apk"
@@ -111,20 +112,26 @@ jobs:
             apk=app/build/outputs/apk/debug/app-debug.apk
           fi
           "$apksigner" verify --print-certs "$apk" | tee certs.txt
-          dn=$(grep -m1 'Signer #1 certificate DN' certs.txt)
-          echo "$dn"
+          # How apksigner labels the DN line depends on the build-tools version
+          # the runner image happens to ship: older ones print "Signer #1
+          # certificate DN", newer ones label it per signature scheme ("V2
+          # Signer: certificate DN"). Match only the part that does not move,
+          # and check every signer rather than the first.
+          debug_key='CN=Android, OU=Android, O=Android'
+          dns=$(grep 'certificate DN' certs.txt) || {
+            echo "::error::apksigner printed no certificate for $apk"
+            exit 1
+          }
           if [ "${{ github.event.inputs.release }}" = "true" ]; then
-            case "$dn" in
-              *"CN=Android, OU=Android, O=Android"*)
-                echo "::error::release APK is signed with the public debug key"
-                exit 1 ;;
-            esac
+            if printf '%s\n' "$dns" | grep -qF "$debug_key"; then
+              echo "::error::release APK is signed with the public debug key"
+              exit 1
+            fi
           else
-            case "$dn" in
-              *"CN=Android, OU=Android, O=Android"*) ;;
-              *) echo "::error::debug APK is not signed with app/android.jks"
-                 exit 1 ;;
-            esac
+            if printf '%s\n' "$dns" | grep -qvF "$debug_key"; then
+              echo "::error::debug APK is not signed with app/android.jks"
+              exit 1
+            fi
           fi
 
       - name: Upload APK
