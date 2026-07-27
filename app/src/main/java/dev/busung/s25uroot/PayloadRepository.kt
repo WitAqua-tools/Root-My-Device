@@ -47,7 +47,7 @@ class PayloadRepository(private val context: Context) {
         )
         val kernelSu = downloadArtifact(
             profile.kernelSu.artifact,
-            File(directory, "ksud-s25u-kdp"),
+            File(directory, "ksud"),
             context.getString(R.string.artifact_kernelsu),
             onProgress,
         )

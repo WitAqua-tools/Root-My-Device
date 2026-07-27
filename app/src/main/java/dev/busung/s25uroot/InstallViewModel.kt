@@ -236,9 +236,9 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
     private fun installKernelSu(payloads: VerifiedPayloads) {
         val source = shellQuote(payloads.kernelSu.absolutePath)
         val stageCommand =
-            "/system/bin/cp $source /data/local/tmp/ksud-s25u-kdp && " +
+            "/system/bin/cp $source /data/local/tmp/ksud && " +
                 "/system/bin/cp $source /data/local/tmp/.ksud-stage && " +
-                "/system/bin/chmod 755 /data/local/tmp/ksud-s25u-kdp /data/local/tmp/.ksud-stage"
+                "/system/bin/chmod 755 /data/local/tmp/ksud /data/local/tmp/.ksud-stage"
         val stage = runHelper("-c", stageCommand)
         require(stage.code == 0) { app.getString(R.string.error_ksu_stage, stage.output) }
         appendLog(app.getString(R.string.log_ksu_staged))
@@ -369,7 +369,9 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         private const val P0_CACHE_BOOT_TOKEN = "kernel_boot_id"
         private const val P0_CACHE_OFFSET = "offset"
         private const val P0_OFFSET_ENV = "SLIDE_P0_OFFSET"
-        private const val P0_OFFSET_MAX = 0x1f0000L
+        // Samsung's placement offset fits in 0x1f0000; a real arm64 KASLR slide does
+        // not -- this device reports around 0x106c600000.
+        private const val P0_OFFSET_MAX = 0x4000000000L
         private const val P0_OFFSET_MASK = 0xffffL
         private val LOG_POLL_INTERVAL = 250.milliseconds
         private val ANSI_ESCAPE = Regex("\u001B\\[[0-?]*[ -/]*[@-~]")
