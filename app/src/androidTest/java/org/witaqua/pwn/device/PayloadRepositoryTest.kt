@@ -14,11 +14,14 @@ class PayloadRepositoryTest {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val repository = PayloadRepository(context)
         val snapshot = DeviceSnapshot.current()
-        val profile = repository.resolveTarget(snapshot)
+        val target = repository.resolveTarget(snapshot)
+        val profile = target.profile
         assertEquals(snapshot.kernelRelease, profile.kernelRelease)
         assertEquals(snapshot.kernelBuildVersion, profile.kernelBuildVersion)
+        assertTrue(target.releaseTag.isNotBlank())
 
-        val payloads = repository.download(profile) { }
+        val payloads = repository.download(target) { }
+        assertEquals(target.releaseTag, payloads.releaseTag)
         assertEquals(profile.exploit.size, payloads.exploit.length())
         assertEquals(profile.kernelSu.artifact.size, payloads.kernelSu.length())
         assertTrue(payloads.exploit.canRead())

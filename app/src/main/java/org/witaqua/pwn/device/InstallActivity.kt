@@ -82,6 +82,7 @@ class InstallActivity : ComponentActivity() {
                 InstallScreen(
                     installState = installState,
                     onRetry = { installViewModel.install(profileId) },
+                    onForceFetch = { installViewModel.forceFetchPayload(profileId) },
                     onClose = ::finish,
                 )
             }
@@ -111,6 +112,7 @@ private val installerSteps = listOf(
 private fun InstallScreen(
     installState: InstallUiState,
     onRetry: () -> Unit,
+    onForceFetch: () -> Unit,
     onClose: () -> Unit,
 ) {
     val logScrollState = rememberScrollState()
@@ -152,6 +154,12 @@ private fun InstallScreen(
                 modifier = Modifier.weight(1f),
                 scrollState = logScrollState,
             )
+
+            // Outside the Installed/Failed branches below on purpose: a run that
+            // failed is the one where which payload it pulled matters most.
+            if (!installState.busy && installState.payloadTag != null) {
+                PayloadReleaseCard(installState, onForceFetch)
+            }
 
             if (!installState.busy) {
                 Row(
@@ -242,6 +250,74 @@ private fun InstallerStatusCard(installState: InstallUiState) {
             )
         }
     }
+}
+
+@Composable
+private fun PayloadReleaseCard(installState: InstallUiState, onForceFetch: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = if (installState.payloadState == PayloadState.Outdated) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Icon(Icons.Rounded.CloudDownload, contentDescription = null, modifier = Modifier.size(28.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.payload_release),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = installState.payloadTag.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
+                )
+                payloadStateDetail(installState)?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            when (installState.payloadState) {
+                PayloadState.Fetching -> LoadingIndicator(modifier = Modifier.size(28.dp))
+                // Unknown reaches this card only when the check after the run
+                // could not answer, and that is a case for offering the fetch
+                // rather than withholding it.
+                PayloadState.Outdated, PayloadState.Unknown -> FilledTonalButton(onClick = onForceFetch) {
+                    Text(stringResource(R.string.action_force_fetch))
+                }
+                else -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun payloadStateDetail(installState: InstallUiState): String? = when (installState.payloadState) {
+    PayloadState.Unknown -> stringResource(R.string.payload_unchecked)
+    PayloadState.Current -> stringResource(R.string.payload_current)
+    PayloadState.Outdated -> stringResource(
+        R.string.payload_outdated,
+        installState.latestPayloadTag.orEmpty(),
+    )
+    PayloadState.Fetching -> stringResource(R.string.payload_fetching)
+    PayloadState.Fetched -> stringResource(
+        R.string.payload_fetched,
+        installState.latestPayloadTag.orEmpty(),
+    )
 }
 
 @Composable

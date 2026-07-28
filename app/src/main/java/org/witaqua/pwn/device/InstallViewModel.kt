@@ -10,6 +10,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.time.Duration.Companion.milliseconds
@@ -24,11 +25,26 @@ enum class InstallPhase {
     Failed,
 }
 
+/** What is known about the payload release a finished run used. */
+enum class PayloadState {
+    /** Not checked -- no run has resolved a release yet, or the check failed. */
+    Unknown,
+    Current,
+    Outdated,
+    Fetching,
+    Fetched,
+}
+
 data class InstallUiState(
     val phase: InstallPhase = InstallPhase.Checking,
     val message: String = "",
     val probeOutput: String = "",
     val log: String = "",
+    /** The payload release this run read its artifacts from. */
+    val payloadTag: String? = null,
+    /** The release published right now, as of the last check. */
+    val latestPayloadTag: String? = null,
+    val payloadState: PayloadState = PayloadState.Unknown,
 ) {
     val busy: Boolean
         get() = phase in setOf(
@@ -57,6 +73,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
     private val mutableTargetCatalog = MutableStateFlow(TargetCatalogUiState())
     private var discoveryJob: Job? = null
     private var installJob: Job? = null
+    private var payloadCheckJob: Job? = null
     // Volatile because a delete arriving from the History page runs on a
     // different thread from the install job that keeps writing this entry.
     @Volatile
@@ -75,31 +92,37 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch(Dispatchers.IO) {
             val probe = NativeProbe.run()
-            if (detectInstalled()) {
-                mutableState.value = InstallUiState(
+            val next = when {
+                detectInstalled() -> InstallUiState(
                     phase = InstallPhase.Installed,
                     message = app.getString(R.string.status_ksu_active),
                     probeOutput = probe,
                     log = probe,
                 )
-                return@launch
+                else -> try {
+                    val target = repository.resolveTarget(DeviceSnapshot.current())
+                    InstallUiState(
+                        phase = InstallPhase.Ready,
+                        message = app.getString(R.string.status_not_installed),
+                        probeOutput = probe,
+                        log = "$probe\n${app.getString(R.string.log_profile, target.profile.profileId)}",
+                        latestPayloadTag = target.releaseTag,
+                    )
+                } catch (error: Throwable) {
+                    InstallUiState(
+                        phase = InstallPhase.Failed,
+                        message = app.getString(R.string.status_support_failed),
+                        probeOutput = probe,
+                        log = "$probe\n[-] ${error.message ?: error.javaClass.simpleName}",
+                    )
+                }
             }
-            try {
-                val profile = repository.resolveTarget(DeviceSnapshot.current())
-                mutableState.value = InstallUiState(
-                    phase = InstallPhase.Ready,
-                    message = app.getString(R.string.status_not_installed),
-                    probeOutput = probe,
-                    log = "$probe\n${app.getString(R.string.log_profile, profile.profileId)}",
-                )
-            } catch (error: Throwable) {
-                mutableState.value = InstallUiState(
-                    phase = InstallPhase.Failed,
-                    message = app.getString(R.string.status_support_failed),
-                    probeOutput = probe,
-                    log = "$probe\n[-] ${error.message ?: error.javaClass.simpleName}",
-                )
-            }
+            // Assigned here rather than at each branch, and only if this job is
+            // still the current one: install() cancels discovery, but cancelling
+            // cannot interrupt the blocking network call this job parks in, so a
+            // discovery started first can still return mid-install and would
+            // otherwise drop a whole fresh state on top of the running install.
+            if (isActive) mutableState.value = next
         }
     }
 
@@ -127,6 +150,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
     fun install(profileId: String? = null) {
         if (installJob?.isActive == true || mutableState.value.phase == InstallPhase.Installed) return
         discoveryJob?.cancel()
+        payloadCheckJob?.cancel()
         installJob = viewModelScope.launch(Dispatchers.IO) {
             mutableState.value = InstallUiState(
                 phase = InstallPhase.Checking,
@@ -135,15 +159,17 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             startHistory()
             try {
                 setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
-                val profile = if (profileId == null) {
+                val target = if (profileId == null) {
                     repository.resolveTarget(DeviceSnapshot.current())
                 } else {
                     repository.resolveTarget(profileId)
                 }
-                appendLog(app.getString(R.string.log_profile, profile.profileId))
+                mutableState.value = mutableState.value.copy(payloadTag = target.releaseTag)
+                appendLog(app.getString(R.string.log_profile, target.profile.profileId))
+                appendLog(app.getString(R.string.log_payload_release, target.releaseTag))
 
                 setPhase(InstallPhase.Downloading, app.getString(R.string.status_downloading_payload))
-                val payloads = repository.download(profile) { appendLog("[*] $it") }
+                val payloads = repository.download(target) { appendLog("[*] $it") }
                 appendLog(app.getString(R.string.log_download_verified))
 
                 setPhase(InstallPhase.Exploiting, app.getString(R.string.status_exploit_running))
@@ -159,6 +185,75 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 appendLog("[-] ${error.message ?: error.javaClass.simpleName}")
                 setPhase(InstallPhase.Failed, app.getString(R.string.status_install_failed))
                 finishHistory(InstallRunResult.Failed)
+            }
+            // After both outcomes, outside the try, and in a job of its own.
+            // Outside the try because a check that cannot reach GitHub must not
+            // turn a run that succeeded into a failed one. In its own job --
+            // parented to viewModelScope, not to this coroutine -- because the
+            // check makes a network call, and every button on the finished
+            // screen, Retry and force fetch alike, guards on installJob still
+            // being active and would look dead for as long as it ran.
+            startPayloadCheck()
+        }
+    }
+
+    /**
+     * Asks what the payload repository publishes now and compares it with what
+     * the run just used. Forced past any cache -- an answer repeated from one is
+     * exactly the thing that would make a stale payload look current.
+     */
+    private fun startPayloadCheck() {
+        val used = mutableState.value.payloadTag ?: return
+        payloadCheckJob?.cancel()
+        payloadCheckJob = viewModelScope.launch(Dispatchers.IO) {
+            val latest = runCatching { repository.latestReleaseTag(forceRefresh = true) }.getOrNull()
+            // Same reason discovery checks before assigning: cancelling cannot
+            // interrupt the blocking call, and by the time it returns the user
+            // may have started another run whose state this must not touch.
+            if (!isActive || mutableState.value.payloadTag != used) return@launch
+            if (latest == null) {
+                appendLog(app.getString(R.string.log_payload_check_failed))
+                return@launch
+            }
+            mutableState.value = mutableState.value.copy(
+                latestPayloadTag = latest,
+                payloadState = if (latest == used) PayloadState.Current else PayloadState.Outdated,
+            )
+            if (latest != used) appendLog(app.getString(R.string.log_payload_newer, latest))
+        }
+    }
+
+    /**
+     * Re-reads the release and pulls its artifacts down again, discarding what
+     * is on the device. It stops there: the next run resolves the release for
+     * itself, so this refreshes what is stored and what is displayed rather than
+     * handing bytes to an install.
+     */
+    fun forceFetchPayload(profileId: String? = null) {
+        if (installJob?.isActive == true) return
+        if (mutableState.value.payloadState == PayloadState.Fetching) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val previous = mutableState.value.payloadState
+            mutableState.value = mutableState.value.copy(payloadState = PayloadState.Fetching)
+            try {
+                val target = if (profileId == null) {
+                    repository.resolveTarget(DeviceSnapshot.current(), forceRefresh = true)
+                } else {
+                    repository.resolveTarget(profileId, forceRefresh = true)
+                }
+                appendLog(app.getString(R.string.log_payload_fetching, target.releaseTag))
+                repository.download(target) { appendLog("[*] $it") }
+                mutableState.value = mutableState.value.copy(
+                    latestPayloadTag = target.releaseTag,
+                    payloadState = PayloadState.Fetched,
+                )
+                appendLog(app.getString(R.string.log_payload_fetched, target.releaseTag))
+            } catch (error: Throwable) {
+                appendLog("[-] ${error.message ?: error.javaClass.simpleName}")
+                // Back to what it was, not to Fetched: the newer release may not
+                // carry a profile for this device at all, and the button has to
+                // stay usable when it does not.
+                mutableState.value = mutableState.value.copy(payloadState = previous)
             }
         }
     }
@@ -256,7 +351,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 .filter(String::isNotBlank)
                 .joinToString("\n"),
         )
-        updateHistoryLog()
+        updateHistoryEntry()
     }
 
     private fun installKernelSu(payloads: VerifiedPayloads) {
@@ -359,7 +454,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         mutableState.value = mutableState.value.copy(
             log = (mutableState.value.log + "\n" + cleanLine).trim(),
         )
-        updateHistoryLog()
+        updateHistoryEntry()
     }
 
     private fun startHistory() {
@@ -368,9 +463,12 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         publishHistory(entry)
     }
 
-    private fun updateHistoryLog() {
+    private fun updateHistoryEntry() {
         val entry = activeHistoryEntry ?: return
-        val updated = entry.copy(log = mutableState.value.log)
+        val updated = entry.copy(
+            log = mutableState.value.log,
+            payloadTag = mutableState.value.payloadTag,
+        )
         activeHistoryEntry = updated
         historyStore.save(updated)
         publishHistory(updated)

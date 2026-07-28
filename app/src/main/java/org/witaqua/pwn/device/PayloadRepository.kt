@@ -11,8 +11,19 @@ import org.json.JSONObject
 
 data class VerifiedPayloads(
     val profile: TargetProfile,
+    val releaseTag: String,
     val exploit: File,
     val kernelSu: File,
+)
+
+/**
+ * A profile together with the payload release it was read out of. The two travel
+ * together because the release is what dates a run: the profile alone cannot say
+ * whether the artifacts behind it are still the ones being published.
+ */
+data class ResolvedTarget(
+    val releaseTag: String,
+    val profile: TargetProfile,
 )
 
 /**
@@ -28,10 +39,34 @@ private data class PayloadRelease(
 )
 
 class PayloadRepository(private val context: Context) {
-    fun loadTargets(): List<TargetProfile> {
-        val release = resolveLatestRelease()
-        val manifestBytes = downloadBytes(release.feedUrl, MAX_MANIFEST_BYTES)
-        return SupportManifest.parse(manifestBytes).targets.map { profile -> profile.copy(
+    fun loadTargets(forceRefresh: Boolean = false): List<TargetProfile> =
+        loadFeed(forceRefresh).second
+
+    fun resolveTarget(snapshot: DeviceSnapshot, forceRefresh: Boolean = false): ResolvedTarget {
+        val (tag, targets) = loadFeed(forceRefresh)
+        val profile = targets.firstOrNull { it.matches(snapshot) }
+            ?: error(context.getString(R.string.repo_no_profile))
+        return ResolvedTarget(tag, profile)
+    }
+
+    fun resolveTarget(profileId: String, forceRefresh: Boolean = false): ResolvedTarget {
+        val (tag, targets) = loadFeed(forceRefresh)
+        val profile = targets.firstOrNull { it.profileId == profileId }
+            ?: error(context.getString(R.string.repo_profile_missing, profileId))
+        return ResolvedTarget(tag, profile)
+    }
+
+    /**
+     * The tag of the release the payloads are published under right now, read
+     * without the feed behind it. This is the cheap half of [loadFeed], for
+     * asking whether a run that already happened used the current payload.
+     */
+    fun latestReleaseTag(forceRefresh: Boolean): String = resolveLatestRelease(forceRefresh).tag
+
+    private fun loadFeed(forceRefresh: Boolean): Pair<String, List<TargetProfile>> {
+        val release = resolveLatestRelease(forceRefresh)
+        val manifestBytes = downloadBytes(release.feedUrl, MAX_MANIFEST_BYTES, forceRefresh)
+        val targets = SupportManifest.parse(manifestBytes).targets.map { profile -> profile.copy(
             exploit = profile.exploit.copy(url = requireReleaseAsset(profile.exploit.url, release)),
             kernelSu = profile.kernelSu.copy(
                 artifact = profile.kernelSu.artifact.copy(
@@ -39,17 +74,11 @@ class PayloadRepository(private val context: Context) {
                 ),
             ),
         ) }
+        return release.tag to targets
     }
 
-    fun resolveTarget(snapshot: DeviceSnapshot): TargetProfile = loadTargets()
-        .firstOrNull { it.matches(snapshot) }
-        ?: error(context.getString(R.string.repo_no_profile))
-
-    fun resolveTarget(profileId: String): TargetProfile = loadTargets()
-        .firstOrNull { it.profileId == profileId }
-        ?: error(context.getString(R.string.repo_profile_missing, profileId))
-
-    fun download(profile: TargetProfile, onProgress: (String) -> Unit): VerifiedPayloads {
+    fun download(target: ResolvedTarget, onProgress: (String) -> Unit): VerifiedPayloads {
+        val profile = target.profile
         val directory = File(context.filesDir, "payloads/${profile.profileId}").apply { mkdirs() }
         val exploit = downloadArtifact(
             profile.exploit,
@@ -65,7 +94,7 @@ class PayloadRepository(private val context: Context) {
         )
         Os.chmod(exploit.absolutePath, 0b100100100)
         Os.chmod(kernelSu.absolutePath, 0b100100100)
-        return VerifiedPayloads(profile, exploit, kernelSu)
+        return VerifiedPayloads(profile, target.releaseTag, exploit, kernelSu)
     }
 
     private fun downloadArtifact(
@@ -106,8 +135,8 @@ class PayloadRepository(private val context: Context) {
         return destination
     }
 
-    private fun resolveLatestRelease(): PayloadRelease {
-        val response = downloadBytes(LATEST_RELEASE_API_URL, MAX_RELEASE_RESPONSE_BYTES)
+    private fun resolveLatestRelease(forceRefresh: Boolean): PayloadRelease {
+        val response = downloadBytes(LATEST_RELEASE_API_URL, MAX_RELEASE_RESPONSE_BYTES, forceRefresh)
         val release = JSONObject(response.toString(Charsets.UTF_8))
         val tag = release.getString("tag_name")
         require(tag.matches(TAG_PATTERN)) { context.getString(R.string.repo_release_invalid) }
@@ -138,8 +167,8 @@ class PayloadRepository(private val context: Context) {
         return url
     }
 
-    private fun downloadBytes(url: String, maximum: Int): ByteArray {
-        val connection = open(url)
+    private fun downloadBytes(url: String, maximum: Int, forceRefresh: Boolean = false): ByteArray {
+        val connection = open(url, forceRefresh)
         val bytes = connection.inputStream.use { input ->
             val output = ByteArrayOutputStream()
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -157,12 +186,21 @@ class PayloadRepository(private val context: Context) {
         return bytes
     }
 
-    private fun open(url: String): HttpURLConnection =
+    private fun open(url: String, forceRefresh: Boolean = false): HttpURLConnection =
         (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
             readTimeout = 60_000
             instanceFollowRedirects = true
             setRequestProperty("User-Agent", "RootMyDevice/${BuildConfig.VERSION_NAME}")
+            // A forced fetch is asked for precisely when the answer that came
+            // back last time is suspected of being a stale one, so it has to
+            // reach past whatever between here and GitHub would answer from a
+            // copy -- the platform's own response cache included.
+            if (forceRefresh) {
+                useCaches = false
+                setRequestProperty("Cache-Control", "no-cache")
+                setRequestProperty("Pragma", "no-cache")
+            }
             connect()
             require(responseCode == HttpURLConnection.HTTP_OK) { "HTTP $responseCode" }
         }
