@@ -55,6 +55,20 @@
     <string name="history_clear_body">Every saved run and its execution log will be deleted from this device.</string>
     <string name="history_delete_title">Delete this run?</string>
     <string name="history_delete_body">This run and its execution log will be deleted from this device.</string>
+    <string name="history_payload">Payload: %1$s</string>
+
+    <string name="payload_release">Payload release</string>
+    <string name="payload_current">This is the release published now.</string>
+    <string name="payload_unchecked">Could not check whether a newer release is published.</string>
+    <string name="payload_outdated">A newer release is published: %1$s</string>
+    <string name="payload_fetching">Fetching…</string>
+    <string name="payload_fetched">Fetched %1$s. The next run resolves the release again.</string>
+    <string name="action_force_fetch">Force fetch</string>
+    <string name="log_payload_release">[+] Payload release: %1$s</string>
+    <string name="log_payload_newer">[!] A newer payload release is published: %1$s</string>
+    <string name="log_payload_check_failed">[!] Could not check for a newer payload release</string>
+    <string name="log_payload_fetching">[*] Force-fetching payload release %1$s</string>
+    <string name="log_payload_fetched">[+] Payload release %1$s fetched</string>
 
     <string name="install_title">Install</string>
     <string name="install_keep_open">Keep this screen open until installation finishes</string>

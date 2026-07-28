@@ -850,6 +850,13 @@ private fun HistoryResultCard(entry: InstallHistoryEntry) {
                         color = contentColor.copy(alpha = 0.78f),
                     )
                 }
+                entry.payloadTag?.let { tag ->
+                    Text(
+                        stringResource(R.string.history_payload, tag),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = contentColor.copy(alpha = 0.78f),
+                    )
+                }
             }
         }
     }

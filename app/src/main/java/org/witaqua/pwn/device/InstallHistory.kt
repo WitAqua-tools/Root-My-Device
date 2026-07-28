@@ -18,6 +18,10 @@ data class InstallHistoryEntry(
     val completedAtMillis: Long?,
     val result: InstallRunResult,
     val log: String,
+    // The payload release the run read its artifacts from. Null for a run that
+    // failed before resolving one, and for every entry written before this was
+    // recorded -- JSONObject.isNull answers true for a key that is not there.
+    val payloadTag: String?,
 )
 
 class InstallHistoryStore(context: Context) {
@@ -46,6 +50,7 @@ class InstallHistoryStore(context: Context) {
         completedAtMillis = null,
         result = InstallRunResult.Running,
         log = "",
+        payloadTag = null,
     ).also(::save)
 
     fun delete(id: String) {
@@ -102,6 +107,7 @@ class InstallHistoryStore(context: Context) {
         .put("completedAtMillis", entry.completedAtMillis ?: JSONObject.NULL)
         .put("result", entry.result.name)
         .put("log", entry.log)
+        .put("payloadTag", entry.payloadTag ?: JSONObject.NULL)
 
     private fun decodeOrQuarantine(file: File): InstallHistoryEntry? = try {
         decode(AtomicFile(file).openRead().use { it.readBytes() })
@@ -124,6 +130,7 @@ class InstallHistoryStore(context: Context) {
             },
             result = InstallRunResult.valueOf(value.getString("result")),
             log = value.getString("log"),
+            payloadTag = if (value.isNull("payloadTag")) null else value.getString("payloadTag"),
         )
     }
 }
