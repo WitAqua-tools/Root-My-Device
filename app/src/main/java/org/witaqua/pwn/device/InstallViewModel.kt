@@ -57,6 +57,9 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
     private val mutableTargetCatalog = MutableStateFlow(TargetCatalogUiState())
     private var discoveryJob: Job? = null
     private var installJob: Job? = null
+    // Volatile because a delete arriving from the History page runs on a
+    // different thread from the install job that keeps writing this entry.
+    @Volatile
     private var activeHistoryEntry: InstallHistoryEntry? = null
     val state: StateFlow<InstallUiState> = mutableState.asStateFlow()
     val history: StateFlow<List<InstallHistoryEntry>> = mutableHistory.asStateFlow()
@@ -68,7 +71,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
 
     fun refresh() {
         if (installJob?.isActive == true) return
-        mutableHistory.value = historyStore.load()
+        mutableHistory.value = historyStore.prune(HISTORY_LIMIT, activeHistoryEntry?.id)
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch(Dispatchers.IO) {
             val probe = NativeProbe.run()
@@ -160,8 +163,31 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun deleteHistoryEntry(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Dropping the reference first is what makes the delete stick: a run
+            // still in flight rewrites its own file on every log line, so leaving
+            // it attached would put the entry straight back.
+            if (activeHistoryEntry?.id == id) activeHistoryEntry = null
+            historyStore.delete(id)
+            mutableHistory.value = historyStore.load()
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            activeHistoryEntry = null
+            historyStore.clearAll()
+            // The entry logs are copies of this file, which the payload writes
+            // and which otherwise survives until the next run truncates it.
+            // Clearing the copies and leaving the original is not a clear.
+            exploitLogFile().delete()
+            mutableHistory.value = emptyList()
+        }
+    }
+
     private suspend fun executeExploit(payload: File) {
-        val logFile = File(app.filesDir, "exploit.log")
+        val logFile = exploitLogFile()
         logFile.delete()
         val helper = helperFile()
         require(helper.canExecute()) { app.getString(R.string.error_helper_unavailable) }
@@ -308,6 +334,8 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             .apply()
     }
 
+    private fun exploitLogFile() = File(app.filesDir, "exploit.log")
+
     private fun helperFile() = File(app.applicationInfo.nativeLibraryDir, "libcve43499root.so")
 
     private fun runHelper(vararg arguments: String): CommandResult {
@@ -357,7 +385,9 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         )
         activeHistoryEntry = null
         historyStore.save(completed)
-        publishHistory(completed)
+        // The cap is applied here as well as on refresh(), so that a session
+        // that installs repeatedly without a restart still stays bounded.
+        mutableHistory.value = historyStore.prune(HISTORY_LIMIT)
     }
 
     private fun publishHistory(entry: InstallHistoryEntry) {
@@ -368,6 +398,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
     private fun File.readTextIfPresent(): String = if (exists()) readText() else ""
 
     companion object {
+        private const val HISTORY_LIMIT = 20
         private const val EXPLOIT_STALL_MILLIS = 90_000L
         private const val EXPLOIT_TOTAL_MILLIS = 900_000L
         private const val INSTALL_RECEIPT = "install_receipt"

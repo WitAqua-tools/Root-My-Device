@@ -12,6 +12,7 @@
     <string name="action_retry">Try again</string>
     <string name="action_done">Done</string>
     <string name="action_back">Back</string>
+    <string name="action_delete">Delete</string>
     <string name="install_tap_manager">Tap to install KernelSU Manager</string>
     <string name="install_tap_retry">Tap to try again</string>
     <string name="install_tap_start">Tap to install KernelSU</string>
@@ -50,6 +51,10 @@
     <string name="history_completed">Completed: %1$s</string>
     <string name="history_log">Execution log</string>
     <string name="history_log_empty">No log output yet.</string>
+    <string name="history_clear_title">Clear run history?</string>
+    <string name="history_clear_body">Every saved run and its execution log will be deleted from this device.</string>
+    <string name="history_delete_title">Delete this run?</string>
+    <string name="history_delete_body">This run and its execution log will be deleted from this device.</string>
 
     <string name="install_title">Install</string>
     <string name="install_keep_open">Keep this screen open until installation finishes</string>

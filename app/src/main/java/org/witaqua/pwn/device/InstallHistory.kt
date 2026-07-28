@@ -48,6 +48,39 @@ class InstallHistoryStore(context: Context) {
         log = "",
     ).also(::save)
 
+    fun delete(id: String) {
+        // AtomicFile rather than File: save() writes through AtomicFile, which
+        // parks a backup beside the entry. Deleting the entry alone leaves that
+        // backup behind, and nothing ever comes back for it.
+        AtomicFile(File(directory, "$id.json")).delete()
+    }
+
+    fun clearAll() {
+        // Every file in the directory, not the result of load(): the quarantined
+        // copies and the AtomicFile backups are precisely what load() filters
+        // out, so clearing what it returns would leave the junk behind.
+        directory.listFiles().orEmpty().forEach(File::delete)
+    }
+
+    /**
+     * Keeps the [keep] newest runs and drops the rest, along with every
+     * quarantined copy. [keepId] survives the cut whatever its age -- it is the
+     * run being written right now, and its file is about to be rewritten anyway.
+     */
+    fun prune(keep: Int, keepId: String? = null): List<InstallHistoryEntry> {
+        val entries = load()
+        // After load(), not before: load() is what quarantines a file it cannot
+        // decode, so sweeping first would leave this run's casualties for the next.
+        directory.listFiles { file -> file.extension == "corrupt" }
+            .orEmpty()
+            .forEach(File::delete)
+        val (kept, dropped) = entries.withIndex().partition { (index, entry) ->
+            index < keep || entry.id == keepId
+        }
+        dropped.forEach { delete(it.value.id) }
+        return kept.map { it.value }
+    }
+
     fun save(entry: InstallHistoryEntry) {
         val target = File(directory, "${entry.id}.json")
         val atomicFile = AtomicFile(target)
