@@ -87,6 +87,11 @@ android {
     }
 
     packaging {
+        // Required, not a preference: the APK ships libcve43499root.so, which
+        // is an executable rather than a library. InstallViewModel runs it with
+        // ProcessBuilder out of nativeLibraryDir, and only legacy packaging
+        // extracts it there as a real file. Uncompressed-and-mapped leaves
+        // nothing to exec.
         jniLibs.useLegacyPackaging = true
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }

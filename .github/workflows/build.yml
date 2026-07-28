@@ -26,8 +26,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The bootstrap helper is compiled from the payload repository's source
+      # rather than committed here as a binary, so the submodule holding it has
+      # to be present before CMake runs. Not recursive: the payload repository
+      # has submodules of its own that only its own builds need.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: true
 
       # Gradle 9.5.1 / AGP 9.2.1, and the app compiles against Java 21.
       - name: Setup Java

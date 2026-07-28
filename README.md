@@ -43,6 +43,15 @@ Requirements:
 - Android NDK 28 or newer
 - CMake 3.22.1
 
+The APK contains one native program that is not built from this repository's
+own source, so clone with submodules:
+
+```powershell
+git clone --recurse-submodules https://github.com/Witaqua-tools/Root-My-Device
+# or, in an existing checkout
+git submodule update --init payloads
+```
+
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat :app:assembleDebug
@@ -53,5 +62,32 @@ Output:
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
+
+### The bootstrap helper
+
+`lib/arm64-v8a/libcve43499root.so` in the APK is not a library — it is the
+bootstrap helper, an executable the app runs with `ProcessBuilder` out of
+`nativeLibraryDir`. It is what loads a downloaded payload, and afterwards what
+serves `su` over a socket once the payload has made it root.
+
+It is compiled from source by [`app/src/main/cpp/CMakeLists.txt`](app/src/main/cpp/CMakeLists.txt),
+not committed as a binary. The source is not here, though: the payload's
+standalone route execs the same program from a fixed path, so the payload
+repository has to build it too, and it stays the one copy. This repository
+reaches it through the `payloads` submodule, whose pinned commit is the record
+of exactly which revision an APK was built from.
+
+That means two builds of one source, deliberately. The payload repository pins
+NDK 29 at API 35 because its exploit payload is a fixed-size blob whose
+toolchain is part of its identity; here CMake uses this module's `ndkVersion`
+at `minSdk`. The helper depends on neither — it is the same program either way,
+and the copy the app ships is the one built here.
+
+Two things about it are load-bearing and easy to undo by accident: it must be
+an **executable** (`add_executable` plus `-pie`, so it has a `PT_INTERP` that a
+shared library would not), and it must be **named `lib*.so`** with
+`jniLibs.useLegacyPackaging = true`, because that is what gets extracted into
+`nativeLibraryDir` as a real file with the execute bit set. Both are commented
+where they are set.
 
 Use only on devices you own or are explicitly authorized to test.
