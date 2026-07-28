@@ -51,6 +51,8 @@ import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.BrightnessAuto
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.History
@@ -368,7 +370,12 @@ private fun RootApp(
                         }
                     },
                 )
-                AppPage.History -> HistoryPage(padding, history)
+                AppPage.History -> HistoryPage(
+                    padding = padding,
+                    history = history,
+                    onDeleteEntry = installViewModel::deleteHistoryEntry,
+                    onClearHistory = installViewModel::clearHistory,
+                )
                 AppPage.Settings -> SettingsPage(
                     padding = padding,
                     accentColor = accentColor,
@@ -551,10 +558,42 @@ private fun GitHubCard() {
 private fun HistoryPage(
     padding: PaddingValues,
     history: List<InstallHistoryEntry>,
+    onDeleteEntry: (String) -> Unit,
+    onClearHistory: () -> Unit,
 ) {
     var selectedHistoryId by remember { mutableStateOf<String?>(null) }
+    var pendingDeleteId by remember { mutableStateOf<String?>(null) }
+    var pendingClear by remember { mutableStateOf(false) }
     val selectedEntry = history.firstOrNull { it.id == selectedHistoryId }
     BackHandler(enabled = selectedEntry != null) { selectedHistoryId = null }
+
+    pendingDeleteId?.let { id ->
+        HistoryRemovalDialog(
+            title = R.string.history_delete_title,
+            body = R.string.history_delete_body,
+            onConfirm = {
+                pendingDeleteId = null
+                // Leaving the detail view here rather than waiting for the entry
+                // to disappear from the flow: the delete is a round trip to disk.
+                selectedHistoryId = null
+                onDeleteEntry(id)
+            },
+            onDismiss = { pendingDeleteId = null },
+        )
+    }
+
+    if (pendingClear) {
+        HistoryRemovalDialog(
+            title = R.string.history_clear_title,
+            body = R.string.history_clear_body,
+            onConfirm = {
+                pendingClear = false
+                selectedHistoryId = null
+                onClearHistory()
+            },
+            onDismiss = { pendingClear = false },
+        )
+    }
 
     AnimatedContent(
         targetState = selectedEntry,
@@ -566,15 +605,45 @@ private fun HistoryPage(
                 padding = padding,
                 history = history,
                 onEntryClick = { selectedHistoryId = it.id },
+                onClearRequest = { pendingClear = true },
             )
         } else {
             HistoryDetail(
                 padding = padding,
                 entry = entry,
                 onBack = { selectedHistoryId = null },
+                onDeleteRequest = { pendingDeleteId = entry.id },
             )
         }
     }
+}
+
+@Composable
+private fun HistoryRemovalDialog(
+    @StringRes title: Int,
+    @StringRes body: Int,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.DeleteSweep, contentDescription = null) },
+        title = {
+            DialogDimAmount(0.24f)
+            Text(stringResource(title))
+        },
+        text = { Text(stringResource(body)) },
+        confirmButton = {
+            FilledTonalButton(onClick = onConfirm) {
+                Text(stringResource(R.string.action_delete))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -582,6 +651,7 @@ private fun HistoryList(
     padding: PaddingValues,
     history: List<InstallHistoryEntry>,
     onEntryClick: (InstallHistoryEntry) -> Unit,
+    onClearRequest: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
@@ -589,11 +659,24 @@ private fun HistoryList(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                text = stringResource(R.string.history_title),
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.padding(top = 20.dp, bottom = 14.dp),
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.history_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                if (history.isNotEmpty()) {
+                    IconButton(onClick = onClearRequest) {
+                        Icon(
+                            Icons.Rounded.DeleteSweep,
+                            contentDescription = stringResource(R.string.history_clear_title),
+                        )
+                    }
+                }
+            }
         }
         if (history.isEmpty()) {
             item { EmptyHistoryCard() }
@@ -679,6 +762,7 @@ private fun HistoryDetail(
     padding: PaddingValues,
     entry: InstallHistoryEntry,
     onBack: () -> Unit,
+    onDeleteRequest: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(padding),
@@ -687,14 +771,24 @@ private fun HistoryDetail(
     ) {
         item {
             Row(
-                modifier = Modifier.padding(top = 12.dp, bottom = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.action_back))
                 }
-                Text(stringResource(R.string.history_detail_title), style = MaterialTheme.typography.headlineLarge)
+                Text(
+                    stringResource(R.string.history_detail_title),
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onDeleteRequest) {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.history_delete_title),
+                    )
+                }
             }
         }
         item { HistoryResultCard(entry) }
