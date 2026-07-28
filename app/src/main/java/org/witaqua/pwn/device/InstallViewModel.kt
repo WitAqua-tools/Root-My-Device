@@ -243,7 +243,15 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         require(stage.code == 0) { app.getString(R.string.error_ksu_stage, stage.output) }
         appendLog(app.getString(R.string.log_ksu_staged))
 
-        val lateLoad = runHelper("--late-load")
+        // ksud embeds one module per KMI and picks by the name it is given, so
+        // these are properties of the target rather than of the helper. The
+        // feed carries both; passing them is what lets a profile on a
+        // different GKI branch load at all.
+        val lateLoad = runHelper(
+            "--late-load",
+            payloads.profile.kernelSu.kmi,
+            payloads.profile.kernelSu.managerPackage,
+        )
         require(lateLoad.code == 0) {
             app.getString(R.string.error_ksu_verify, lateLoad.code, lateLoad.output)
         }
