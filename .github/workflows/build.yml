@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/build.yml'
       - 'app/**'
+      # The bootstrap helper the APK ships is compiled from this submodule, so
+      # moving its pin changes a shipped binary. Without this the change is
+      # invisible to CI: the commit that moved the pin onto the late-load fixes
+      # built nothing, and the release kept carrying the helper from before it.
+      - 'payloads'
       - 'gradle/**'
       - 'gradlew*'
       - '*.gradle.kts'
