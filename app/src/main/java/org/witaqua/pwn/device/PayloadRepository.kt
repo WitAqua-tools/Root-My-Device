@@ -80,15 +80,17 @@ class PayloadRepository(private val context: Context) {
     fun download(target: ResolvedTarget, onProgress: (String) -> Unit): VerifiedPayloads {
         val profile = target.profile
         val directory = File(context.filesDir, "payloads/${profile.profileId}").apply { mkdirs() }
+        val run = RunScratch.token()
+        RunScratch.sweep(directory, run)
         val exploit = downloadArtifact(
             profile.exploit,
-            File(directory, "cve-2026-43499-app.so"),
+            File(directory, "cve-2026-43499-app-$run.so"),
             context.getString(R.string.artifact_exploit),
             onProgress,
         )
         val kernelSu = downloadArtifact(
             profile.kernelSu.artifact,
-            File(directory, "ksud"),
+            File(directory, "ksud-$run"),
             context.getString(R.string.artifact_kernelsu),
             onProgress,
         )
@@ -104,14 +106,13 @@ class PayloadRepository(private val context: Context) {
         onProgress: (String) -> Unit,
     ): File {
         onProgress(context.getString(R.string.repo_downloading, label))
-        val temporary = File(destination.parentFile, "${destination.name}.part")
         val connection = open(artifact.url)
         require(connection.contentLengthLong == -1L || connection.contentLengthLong == artifact.size) {
             context.getString(R.string.repo_size_mismatch, label)
         }
         var total = 0L
         connection.inputStream.use { input ->
-            FileOutputStream(temporary).use { output ->
+            FileOutputStream(destination).use { output ->
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                 while (true) {
                     val count = input.read(buffer)
@@ -127,10 +128,6 @@ class PayloadRepository(private val context: Context) {
         }
         connection.disconnect()
         require(total == artifact.size) { context.getString(R.string.repo_incomplete, label) }
-        if (destination.exists()) destination.delete()
-        require(temporary.renameTo(destination)) {
-            context.getString(R.string.repo_finalize_failed, label)
-        }
         onProgress(context.getString(R.string.repo_verified, label))
         return destination
     }

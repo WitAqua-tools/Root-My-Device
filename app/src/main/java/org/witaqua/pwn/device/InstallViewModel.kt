@@ -296,17 +296,21 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             activeHistoryEntry = null
             historyStore.clearAll()
-            // The entry logs are copies of this file, which the payload writes
-            // and which otherwise survives until the next run truncates it.
-            // Clearing the copies and leaving the original is not a clear.
-            exploitLogFile().delete()
+            // The entry logs are copies of these files, which the payload writes and
+            // which otherwise survive until a later run sweeps them. Clearing the
+            // copies and leaving the originals is not a clear.
+            RunScratch.sweep(exploitLogDirectory(), keep = null)
             mutableHistory.value = emptyList()
         }
     }
 
     private suspend fun executeExploit(payload: File) {
-        val logFile = exploitLogFile()
-        logFile.delete()
+        // Fresh name per run, and the previous run's logs swept, for the same reason
+        // the payload files are named that way -- see RunScratch. The logs have a
+        // directory of their own so that sweeping it cannot reach anything else.
+        val run = RunScratch.token()
+        RunScratch.sweep(exploitLogDirectory(), run)
+        val logFile = exploitLogFile(run)
         val helper = helperFile()
         require(helper.canExecute()) { app.getString(R.string.error_helper_unavailable) }
         val logPrefix = mutableState.value.log
@@ -452,7 +456,10 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             .apply()
     }
 
-    private fun exploitLogFile() = File(app.filesDir, "exploit.log")
+    private fun exploitLogDirectory() =
+        File(app.filesDir, "exploit-logs").apply { mkdirs() }
+
+    private fun exploitLogFile(run: String) = File(exploitLogDirectory(), "exploit-$run.log")
 
     private fun helperFile() = File(app.applicationInfo.nativeLibraryDir, "libcve43499root.so")
 
