@@ -178,6 +178,10 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             )
             startHistory()
             try {
+                // Before anything is fetched: a run cannot leak the kernel base while
+                // the file it reads the answer out of is mounted over, and a reboot is
+                // the only way to clear that. See leakChannelPinned().
+                require(!leakChannelPinned()) { app.getString(R.string.error_leak_channel_pinned) }
                 setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
                 val target = if (profileId == null) {
                     repository.resolveTarget(DeviceSnapshot.current())
@@ -455,6 +459,26 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             .putString(P0_CACHE_OFFSET, value)
             .apply()
     }
+
+    /**
+     * Whether a previous run has pinned `/proc/sys/kernel/random/boot_id`.
+     *
+     * The exploit leaks the kernel base by reading that file, and it has no other
+     * channel at that point in the run -- establishing a kernel read is what the leak
+     * is for. After a run takes root, `su_daemon`'s `pin_boot_id()` bind-mounts the
+     * boot id the device actually started with over the same path, so that libcutils
+     * can keep computing `/dev/ashmem<boot_id>` and applications keep launching.
+     *
+     * Both are needed and they want the same file. While the mount is there the leak
+     * reads a real UUID, every attempt is rejected, and the run spends fifteen minutes
+     * failing identically. A mount does not survive a reboot, and a pin only exists
+     * because this boot has already been rooted once, so refusing here and saying so
+     * is the whole of the fix.
+     */
+    private fun leakChannelPinned(): Boolean = runCatching {
+        // Mount targets are the second field, so match the path with its separators.
+        File("/proc/self/mounts").readText().contains(" /proc/sys/kernel/random/boot_id ")
+    }.getOrDefault(false)
 
     private fun exploitLogDirectory() =
         File(app.filesDir, "exploit-logs").apply { mkdirs() }
