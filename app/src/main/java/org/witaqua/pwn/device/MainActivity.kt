@@ -45,6 +45,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Android
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
@@ -66,6 +67,7 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -435,61 +437,70 @@ private fun OverviewPage(
 
 @Composable
 private fun InstallStatusCard(installState: InstallUiState, onInstall: () -> Unit) {
+    val colors = CardDefaults.cardColors(
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+    )
+    val modifier = Modifier.fillMaxWidth().animateContentSize()
+    // Once installed this card only reports, so it stops being a button: the
+    // manager it still wants has its own card below, and sending a tap here to
+    // a download page read as if the install had not finished. A static Card
+    // rather than onClick = {}, so the ripple goes with the destination.
+    if (installState.phase == InstallPhase.Installed) {
+        Card(modifier = modifier, shape = MaterialTheme.shapes.large, colors = colors) {
+            InstallStatusContent(installState)
+        }
+        return
+    }
     val interactionSource = remember { MutableInteractionSource() }
-    val uriHandler = LocalUriHandler.current
     Card(
-        onClick = {
-            when {
-                installState.busy -> Unit
-                installState.phase == InstallPhase.Installed ->
-                    uriHandler.openUri(installState.kernelSu?.managerUrl ?: KERNEL_SU_MANAGER_URL)
-                else -> onInstall()
-            }
-        },
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        onClick = { if (!installState.busy) onInstall() },
+        modifier = modifier,
         shape = expressiveClickableCardShape(interactionSource),
         interactionSource = interactionSource,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        colors = colors,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            when {
-                installState.busy -> LoadingIndicator(modifier = Modifier.size(44.dp))
-                installState.phase == InstallPhase.Installed -> Icon(
-                    Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(44.dp),
-                )
-                installState.phase == InstallPhase.Failed -> Icon(
-                    Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(44.dp),
-                )
-                else -> Icon(
-                    Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(44.dp),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = when (installState.phase) {
-                        InstallPhase.Ready -> stringResource(R.string.status_not_installed)
-                        InstallPhase.Installed -> stringResource(R.string.status_ksu_active)
-                        else -> installState.message
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Text(
-                    text = when (installState.phase) {
-                        InstallPhase.Installed -> stringResource(R.string.install_tap_manager)
-                        InstallPhase.Failed -> stringResource(R.string.install_tap_retry)
-                        else -> stringResource(R.string.install_tap_start)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.86f),
-                    maxLines = 1,
-                )
-            }
+        InstallStatusContent(installState)
+    }
+}
+
+@Composable
+private fun InstallStatusContent(installState: InstallUiState) {
+    Row(
+        modifier = Modifier.padding(horizontal = 18.dp, vertical = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        when {
+            installState.busy -> LoadingIndicator(modifier = Modifier.size(44.dp))
+            installState.phase == InstallPhase.Installed -> Icon(
+                Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(44.dp),
+            )
+            installState.phase == InstallPhase.Failed -> Icon(
+                Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(44.dp),
+            )
+            else -> Icon(
+                Icons.Rounded.Warning, contentDescription = null, modifier = Modifier.size(44.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = when (installState.phase) {
+                    InstallPhase.Ready -> stringResource(R.string.status_not_installed)
+                    InstallPhase.Installed -> stringResource(R.string.status_ksu_active)
+                    else -> installState.message
+                },
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = when (installState.phase) {
+                    InstallPhase.Installed -> stringResource(R.string.install_ksu_running)
+                    InstallPhase.Failed -> stringResource(R.string.install_tap_retry)
+                    else -> stringResource(R.string.install_tap_start)
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.86f),
+                maxLines = 1,
+            )
         }
     }
 }
@@ -567,7 +578,15 @@ private fun DeviceCard(device: DeviceSnapshot) {
         ) {
             InfoRow(Icons.Rounded.Memory, stringResource(R.string.device), "${device.manufacturer} ${device.model} (${device.device})")
             InfoRow(Icons.Rounded.Code, stringResource(R.string.firmware), device.buildId)
+            // What the vendor calls this build. HyperOS keeps it out of the
+            // firmware row above, which carries the AOSP build id, so this is
+            // the only place the version the user knows appears -- and where a
+            // vendor has nothing of its own to say, the row stays away.
+            device.displayOsVersion?.let { osVersion ->
+                InfoRow(Icons.Rounded.Android, stringResource(R.string.os_version), osVersion)
+            }
             InfoRow(Icons.Rounded.Info, stringResource(R.string.system), "Android ${device.androidRelease} (API ${device.sdk})")
+            InfoRow(Icons.Rounded.Terminal, stringResource(R.string.kernel), device.kernelRelease)
             InfoRow(Icons.Rounded.Security, stringResource(R.string.system_abi), "${device.abi} (${device.pageSize / 1024}K)")
         }
     }
@@ -577,7 +596,9 @@ private fun DeviceCard(device: DeviceSnapshot) {
 private fun InfoRow(icon: ImageVector, label: String, value: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Column {
+        // Weighted so the kernel release, which is longer than the card is
+        // wide, wraps inside the row instead of running past its edge.
+        Column(modifier = Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.titleSmall)
             Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
