@@ -49,7 +49,7 @@
     <string name="history_empty_description">Installation results and logs will appear here.</string>
     <string name="history_running">Running</string>
     <string name="history_succeeded">Succeeded</string>
-    <string name="history_failed">Failed</string>
+    <string name="history_failed">Failed</string><string name="history_skipped">Skipped</string>
     <string name="history_detail_title">Run details</string>
     <string name="history_started">Started: %1$s</string>
     <string name="history_completed">Completed: %1$s</string>
@@ -92,7 +92,7 @@
     <string name="phase_exploiting">This may take 10 minutes or longer. Your device may become hot or stop responding.</string>
     <string name="phase_loading_ksu">Loading KernelSU with the acquired bootstrap root</string>
     <string name="phase_installed">KernelSU module and control channel verified</string>
-    <string name="phase_failed">Review the failure point in the log below</string>
+    <string name="phase_failed">Review the failure point in the log below</string><string name="phase_skipped">Restart the device, then run once</string>
 
     <string name="status_ksu_active">KernelSU active</string>
     <string name="status_not_installed">Not installed</string>
@@ -101,7 +101,7 @@
     <string name="status_downloading_payload">Downloading payloads</string>
     <string name="status_exploit_running">Running kernel exploit</string>
     <string name="status_ksu_loading">Late-loading KernelSU</string>
-    <string name="status_install_failed">Installation failed</string>
+    <string name="status_install_failed">Installation failed</string><string name="status_install_skipped">Skipped — a reboot is needed first</string>
     <string name="log_profile">[+] Support profile: %1$s</string>
     <string name="log_download_verified">[+] Payload download complete</string>
     <string name="log_install_complete">[+] Installation complete</string>

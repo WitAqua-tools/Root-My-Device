@@ -152,7 +152,7 @@ private fun InstallScreen(
             // log below. The steps are a progress indicator for a run that is
             // still going; after a failure the question is what the log says,
             // and the step it died on is the one the log stops at anyway.
-            if (installState.phase != InstallPhase.Failed) {
+            if (installState.phase !in TERMINAL_UNSUCCESSFUL) {
                 InstallerSteps(installState.phase)
             }
             InstallerLog(
@@ -174,7 +174,7 @@ private fun InstallScreen(
                         .padding(bottom = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (installState.phase == InstallPhase.Failed) {
+                    if (installState.phase in TERMINAL_UNSUCCESSFUL) {
                         FilledTonalButton(
                             onClick = onClose,
                             modifier = Modifier.weight(1f),
@@ -211,6 +211,7 @@ private fun InstallerStatusCard(installState: InstallUiState) {
         colors = CardDefaults.cardColors(
             containerColor = when (installState.phase) {
                 InstallPhase.Failed -> MaterialTheme.colorScheme.errorContainer
+                InstallPhase.Skipped -> MaterialTheme.colorScheme.surfaceVariant
                 else -> MaterialTheme.colorScheme.primaryContainer
             },
         ),
@@ -378,7 +379,7 @@ private fun InstallerSteps(phase: InstallPhase) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    if (stepState == 1 && phase !in setOf(InstallPhase.Failed, InstallPhase.Ready)) {
+                    if (stepState == 1 && phase !in setOf(InstallPhase.Failed, InstallPhase.Skipped, InstallPhase.Ready)) {
                         LoadingIndicator(modifier = Modifier.size(24.dp))
                     }
                 }
@@ -429,8 +430,16 @@ private fun installPhaseDetail(phase: InstallPhase): String = stringResource(
         InstallPhase.LoadingKernelSu -> R.string.phase_loading_ksu
         InstallPhase.Installed -> R.string.phase_installed
         InstallPhase.Failed -> R.string.phase_failed
+        InstallPhase.Skipped -> R.string.phase_skipped
     },
 )
+
+/**
+ * The run is over and did not install: steps stop being a progress indicator and
+ * the close/retry pair belongs on screen. Skipped is in here because it is
+ * terminal, not because anything went wrong.
+ */
+private val TERMINAL_UNSUCCESSFUL = setOf(InstallPhase.Failed, InstallPhase.Skipped)
 
 private fun installProgress(phase: InstallPhase): Float = when (phase) {
     InstallPhase.Checking -> 0.1f
@@ -440,12 +449,14 @@ private fun installProgress(phase: InstallPhase): Float = when (phase) {
     InstallPhase.LoadingKernelSu -> 0.85f
     InstallPhase.Installed -> 1f
     InstallPhase.Failed -> 0f
+    InstallPhase.Skipped -> 0f
 }
 
 private fun stepState(phase: InstallPhase, stepIndex: Int): Int {
     if (phase == InstallPhase.Installed) return 2
     val activeIndex = when (phase) {
-        InstallPhase.Checking, InstallPhase.Ready, InstallPhase.Failed -> 0
+        InstallPhase.Checking, InstallPhase.Ready, InstallPhase.Failed,
+        InstallPhase.Skipped -> 0
         InstallPhase.Downloading -> 1
         InstallPhase.Exploiting -> 2
         InstallPhase.LoadingKernelSu -> 3

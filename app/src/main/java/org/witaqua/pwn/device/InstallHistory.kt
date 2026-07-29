@@ -10,6 +10,16 @@ enum class InstallRunResult {
     Running,
     Succeeded,
     Failed,
+
+    /**
+     * The run was refused before it started, because this boot cannot win it --
+     * currently only when the kernel-base leak channel is already mounted over.
+     *
+     * Distinct from [Failed] because nothing was attempted and nothing is wrong:
+     * calling it a failure sends the reader looking for a cause in a log that
+     * only says a reboot is needed.
+     */
+    Skipped,
 }
 
 data class InstallHistoryEntry(
