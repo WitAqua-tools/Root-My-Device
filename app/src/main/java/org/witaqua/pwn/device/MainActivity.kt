@@ -814,11 +814,13 @@ private fun HistoryEntryCard(entry: InstallHistoryEntry, onClick: () -> Unit) {
         InstallRunResult.Running -> MaterialTheme.colorScheme.tertiaryContainer
         InstallRunResult.Succeeded -> MaterialTheme.colorScheme.primaryContainer
         InstallRunResult.Failed -> MaterialTheme.colorScheme.errorContainer
+        InstallRunResult.Skipped -> MaterialTheme.colorScheme.surfaceVariant
     }
     val contentColor = when (entry.result) {
         InstallRunResult.Running -> MaterialTheme.colorScheme.onTertiaryContainer
         InstallRunResult.Succeeded -> MaterialTheme.colorScheme.onPrimaryContainer
         InstallRunResult.Failed -> MaterialTheme.colorScheme.onErrorContainer
+        InstallRunResult.Skipped -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Card(
         onClick = onClick,
@@ -911,11 +913,13 @@ private fun HistoryResultCard(entry: InstallHistoryEntry) {
         InstallRunResult.Running -> MaterialTheme.colorScheme.tertiaryContainer
         InstallRunResult.Succeeded -> MaterialTheme.colorScheme.primaryContainer
         InstallRunResult.Failed -> MaterialTheme.colorScheme.errorContainer
+        InstallRunResult.Skipped -> MaterialTheme.colorScheme.surfaceVariant
     }
     val contentColor = when (entry.result) {
         InstallRunResult.Running -> MaterialTheme.colorScheme.onTertiaryContainer
         InstallRunResult.Succeeded -> MaterialTheme.colorScheme.onPrimaryContainer
         InstallRunResult.Failed -> MaterialTheme.colorScheme.onErrorContainer
+        InstallRunResult.Skipped -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -960,6 +964,7 @@ private fun historyResultLabel(result: InstallRunResult): String = stringResourc
         InstallRunResult.Running -> R.string.history_running
         InstallRunResult.Succeeded -> R.string.history_succeeded
         InstallRunResult.Failed -> R.string.history_failed
+        InstallRunResult.Skipped -> R.string.history_skipped
     },
 )
 
@@ -967,6 +972,7 @@ private fun historyResultIcon(result: InstallRunResult): ImageVector = when (res
     InstallRunResult.Running -> Icons.Rounded.Schedule
     InstallRunResult.Succeeded -> Icons.Rounded.CheckCircle
     InstallRunResult.Failed -> Icons.Rounded.Error
+    InstallRunResult.Skipped -> Icons.Rounded.Schedule
 }
 
 @Composable

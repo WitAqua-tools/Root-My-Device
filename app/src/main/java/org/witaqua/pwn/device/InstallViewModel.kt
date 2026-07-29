@@ -23,6 +23,12 @@ enum class InstallPhase {
     LoadingKernelSu,
     Installed,
     Failed,
+
+    /**
+     * Refused before it started, because this boot cannot win it. Terminal like
+     * [Failed], but nothing was attempted, so it is not reported as a failure.
+     */
+    Skipped,
 }
 
 /** What is known about the payload release a finished run used. */
@@ -68,6 +74,13 @@ data class TargetCatalogUiState(
     val profiles: List<TargetProfile> = emptyList(),
     val error: String? = null,
 )
+
+/**
+ * Thrown to end a run that this boot cannot win, before anything is attempted.
+ * Carried by its own type so the outcome is recorded as skipped rather than
+ * failed -- see [InstallRunResult.Skipped].
+ */
+private class RunSkipped(message: String) : Exception(message)
 
 private data class CommandResult(val code: Int, val output: String)
 
@@ -181,7 +194,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 // Before anything is fetched: a run cannot leak the kernel base while
                 // the file it reads the answer out of is mounted over, and a reboot is
                 // the only way to clear that. See leakChannelPinned().
-                require(!leakChannelPinned()) { app.getString(R.string.error_leak_channel_pinned) }
+                if (leakChannelPinned()) throw RunSkipped(app.getString(R.string.error_leak_channel_pinned))
                 setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
                 val target = if (profileId == null) {
                     repository.resolveTarget(DeviceSnapshot.current())
@@ -208,6 +221,12 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 setPhase(InstallPhase.Installed, app.getString(R.string.status_ksu_active))
                 appendLog(app.getString(R.string.log_install_complete))
                 finishHistory(InstallRunResult.Succeeded)
+            } catch (skipped: RunSkipped) {
+                // Not a failure: the run was refused before it touched anything, and
+                // the reader should not go looking for a cause in the log.
+                appendLog("[*] ${skipped.message}")
+                setPhase(InstallPhase.Skipped, app.getString(R.string.status_install_skipped))
+                finishHistory(InstallRunResult.Skipped)
             } catch (error: Throwable) {
                 appendLog("[-] ${error.message ?: error.javaClass.simpleName}")
                 setPhase(InstallPhase.Failed, app.getString(R.string.status_install_failed))
