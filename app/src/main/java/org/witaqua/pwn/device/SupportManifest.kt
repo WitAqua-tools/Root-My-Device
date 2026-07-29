@@ -11,6 +11,22 @@ data class KernelSuArtifact(
     val artifact: RemoteArtifact,
     val kmi: String,
     val managerPackage: String,
+    /**
+     * The manager this module pairs with, as the feed's own build named it.
+     *
+     * The module and the manager carry the same number, and the manager
+     * refuses a module below its own minimum, so the pairing is not a matter
+     * of taste and the app should not have to guess it from a constant of its
+     * own. It is a property of the payload build, so it travels in the feed.
+     *
+     * Optional, and read as such: a feed published before this existed carries
+     * none of the three, and an app that stopped working against the release
+     * it was installed alongside would be a worse failure than showing no
+     * version. Absent, [MainActivity] falls back to what it was doing before.
+     */
+    val managerVersionCode: Int?,
+    val managerVersionName: String?,
+    val managerUrl: String?,
 )
 
 data class TargetProfile(
@@ -79,6 +95,15 @@ data class SupportManifest(
                                 ),
                                 kmi = kernelSu.getString("kmi"),
                                 managerPackage = kernelSu.getString("managerPackage"),
+                                managerVersionCode = kernelSu
+                                    .optInt("managerVersionCode")
+                                    .takeIf { it > 0 },
+                                managerVersionName = kernelSu
+                                    .optString("managerVersionName")
+                                    .takeIf { it.isNotEmpty() },
+                                managerUrl = kernelSu
+                                    .optString("managerUrl")
+                                    .takeIf { it.startsWith("https://") },
                             ),
                         ),
                     )
