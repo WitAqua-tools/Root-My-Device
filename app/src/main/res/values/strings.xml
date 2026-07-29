@@ -13,13 +13,15 @@
     <string name="action_done">Done</string>
     <string name="action_back">Back</string>
     <string name="action_delete">Delete</string>
-    <string name="install_tap_manager">Tap to install KernelSU Manager</string>
+    <string name="install_ksu_running">KernelSU module is running</string>
     <string name="kernelsu_manager_required">Required KernelSU Manager</string>
     <string name="kernelsu_manager_open">Tap to open its download page</string>
     <string name="install_tap_retry">Tap to try again</string>
     <string name="install_tap_start">Tap to install KernelSU</string>
     <string name="device">Device</string>
     <string name="firmware">Firmware</string>
+    <string name="os_version">OS version</string>
+    <string name="kernel">Kernel</string>
     <string name="system">System</string>
     <string name="system_abi">System ABI</string>
     <string name="settings">Settings</string>
