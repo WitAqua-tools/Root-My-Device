@@ -53,6 +53,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.History
@@ -202,6 +203,9 @@ private val languageOptions = listOf(
     LanguageOption(R.string.language_chinese, "zh-CN"),
 )
 
+// Only reached for a feed published before the manager travelled in it. Which
+// manager a module pairs with is a property of the build that produced it, so
+// the feed is where it belongs; this is the last answer rather than the first.
 private const val KERNEL_SU_MANAGER_URL =
     "https://github.com/tiann/KernelSU/releases/download/v3.2.5/KernelSU_v3.2.5_32525-release.apk"
 
@@ -416,6 +420,14 @@ private fun OverviewPage(
             )
         }
         item { InstallStatusCard(installState, onInstall) }
+        // Only once a profile has been resolved: before that the app does not
+        // know which module this device gets, and a version it made up would
+        // be worse than none.
+        installState.kernelSu?.let { kernelSu ->
+            if (kernelSu.managerVersionCode != null) {
+                item { KernelSuManagerCard(kernelSu) }
+            }
+        }
         item { DeviceCard(device) }
         item { GitHubCard() }
     }
@@ -429,7 +441,8 @@ private fun InstallStatusCard(installState: InstallUiState, onInstall: () -> Uni
         onClick = {
             when {
                 installState.busy -> Unit
-                installState.phase == InstallPhase.Installed -> uriHandler.openUri(KERNEL_SU_MANAGER_URL)
+                installState.phase == InstallPhase.Installed ->
+                    uriHandler.openUri(installState.kernelSu?.managerUrl ?: KERNEL_SU_MANAGER_URL)
                 else -> onInstall()
             }
         },
@@ -475,6 +488,64 @@ private fun InstallStatusCard(installState: InstallUiState, onInstall: () -> Uni
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.86f),
                     maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Which KernelSU manager this device's module pairs with, and a way to it.
+ *
+ * The two carry the same version number and the manager refuses a module below
+ * its own minimum, so installing whichever manager turns up first is how a
+ * working root ends up looking broken. The number comes from the feed, which is
+ * written by the build that produced the module, so it cannot drift from it.
+ */
+@Composable
+private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val uriHandler = LocalUriHandler.current
+    val url = kernelSu.managerUrl ?: KERNEL_SU_MANAGER_URL
+    Card(
+        onClick = { uriHandler.openUri(url) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = expressiveClickableCardShape(interactionSource),
+        interactionSource = interactionSource,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Rounded.Download,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.kernelsu_manager_required),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    // The name is upstream's tag and the code is what the
+                    // manager shows for itself, so both are worth printing:
+                    // one identifies the release, the other is what a mismatch
+                    // is argued about.
+                    kernelSu.managerVersionName?.let { name ->
+                        "$name (${kernelSu.managerVersionCode})"
+                    } ?: kernelSu.managerVersionCode.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(R.string.kernelsu_manager_open),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

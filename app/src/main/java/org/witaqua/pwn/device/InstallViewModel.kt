@@ -45,6 +45,13 @@ data class InstallUiState(
     /** The release published right now, as of the last check. */
     val latestPayloadTag: String? = null,
     val payloadState: PayloadState = PayloadState.Unknown,
+    /**
+     * The KernelSU build this device's profile pairs with, so the overview can
+     * name the manager version it needs rather than leaving the user to find
+     * out from the manager that the two do not match. Null when no profile has
+     * been resolved -- no network, or no entry for this device.
+     */
+    val kernelSu: KernelSuArtifact? = null,
 ) {
     val busy: Boolean
         get() = phase in setOf(
@@ -98,6 +105,14 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                     message = app.getString(R.string.status_ksu_active),
                     probeOutput = probe,
                     log = probe,
+                    // Which manager to fetch is the one thing still to be done
+                    // once KernelSU is loaded, and it comes from the feed. The
+                    // branch is otherwise offline, so this is asked for rather
+                    // than required: without an answer the overview says what
+                    // it always said.
+                    kernelSu = runCatching {
+                        repository.resolveTarget(DeviceSnapshot.current()).profile.kernelSu
+                    }.getOrNull(),
                 )
                 else -> try {
                     val target = repository.resolveTarget(DeviceSnapshot.current())
@@ -107,6 +122,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                         probeOutput = probe,
                         log = "$probe\n${app.getString(R.string.log_profile, target.profile.profileId)}",
                         latestPayloadTag = target.releaseTag,
+                        kernelSu = target.profile.kernelSu,
                     )
                 } catch (error: Throwable) {
                     InstallUiState(
@@ -155,6 +171,10 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
             mutableState.value = InstallUiState(
                 phase = InstallPhase.Checking,
                 probeOutput = mutableState.value.probeOutput,
+                // Carried across the reset: the run is about to resolve the
+                // same profile again, and the manager it needs does not stop
+                // being true while the install is in flight.
+                kernelSu = mutableState.value.kernelSu,
             )
             startHistory()
             try {
@@ -164,7 +184,10 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     repository.resolveTarget(profileId)
                 }
-                mutableState.value = mutableState.value.copy(payloadTag = target.releaseTag)
+                mutableState.value = mutableState.value.copy(
+                    payloadTag = target.releaseTag,
+                    kernelSu = target.profile.kernelSu,
+                )
                 appendLog(app.getString(R.string.log_profile, target.profile.profileId))
                 appendLog(app.getString(R.string.log_payload_release, target.releaseTag))
 
