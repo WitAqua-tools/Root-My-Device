@@ -148,7 +148,13 @@ private fun InstallScreen(
             }
 
             InstallerStatusCard(installState)
-            InstallerSteps(installState.phase)
+            // Dropped once the run has failed, which hands its height to the
+            // log below. The steps are a progress indicator for a run that is
+            // still going; after a failure the question is what the log says,
+            // and the step it died on is the one the log stops at anyway.
+            if (installState.phase != InstallPhase.Failed) {
+                InstallerSteps(installState.phase)
+            }
             InstallerLog(
                 output = installState.log,
                 modifier = Modifier.weight(1f),
