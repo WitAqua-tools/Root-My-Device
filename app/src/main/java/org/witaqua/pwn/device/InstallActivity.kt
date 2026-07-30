@@ -304,7 +304,17 @@ private fun PayloadReleaseCard(installState: InstallUiState, onForceFetch: () ->
                 // could not answer, and that is a case for offering the fetch
                 // rather than withholding it.
                 PayloadState.Outdated, PayloadState.Unknown -> FilledTonalButton(onClick = onForceFetch) {
-                    Text(stringResource(R.string.action_force_fetch))
+                    // Same button, different act: in debug mode it re-reads the
+                    // folder rather than the release, so it says so.
+                    Text(
+                        stringResource(
+                            if (installState.localPayload != null) {
+                                R.string.action_reload_local
+                            } else {
+                                R.string.action_force_fetch
+                            },
+                        ),
+                    )
                 }
                 else -> Unit
             }
@@ -313,7 +323,15 @@ private fun PayloadReleaseCard(installState: InstallUiState, onForceFetch: () ->
 }
 
 @Composable
-private fun payloadStateDetail(installState: InstallUiState): String? = when (installState.payloadState) {
+private fun payloadStateDetail(installState: InstallUiState): String? = when {
+    // A local payload is not a release, so "could not check for a newer one" is
+    // not what happened -- nothing was asked, on purpose.
+    installState.localPayload != null -> stringResource(R.string.payload_local)
+    else -> payloadReleaseDetail(installState)
+}
+
+@Composable
+private fun payloadReleaseDetail(installState: InstallUiState): String? = when (installState.payloadState) {
     PayloadState.Unknown -> stringResource(R.string.payload_unchecked)
     PayloadState.Current -> stringResource(R.string.payload_current)
     PayloadState.Outdated -> stringResource(

@@ -1,11 +1,14 @@
 package org.witaqua.pwn.device
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -50,12 +53,14 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.BrightnessAuto
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
@@ -139,6 +144,10 @@ class MainActivity : ComponentActivity() {
     private var accentColor by mutableStateOf(AccentColor.Dynamic)
     private var themeMode by mutableStateOf(AppThemeMode.System)
     private var advancedMode by mutableStateOf(false)
+    private var debugMode by mutableStateOf(false)
+    // The folder's own name rather than its URI: the URI is a provider path no
+    // one recognises, and this is only ever shown.
+    private var debugFolderLabel by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -146,6 +155,8 @@ class MainActivity : ComponentActivity() {
         accentColor = AppPreferences.accentColor(this)
         themeMode = AppPreferences.themeMode(this)
         advancedMode = AppPreferences.advancedMode(this)
+        debugMode = AppPreferences.debugMode(this)
+        debugFolderLabel = LocalPayloadSource(this).folder()?.label
         setContent {
             RootMyDeviceTheme(accentColor = accentColor, themeMode = themeMode) {
                 RootApp(
@@ -153,6 +164,8 @@ class MainActivity : ComponentActivity() {
                     accentColor = accentColor,
                     themeMode = themeMode,
                     advancedMode = advancedMode,
+                    debugMode = debugMode,
+                    debugFolderLabel = debugFolderLabel,
                     onAccentColorChanged = { color ->
                         AppPreferences.setAccentColor(this, color)
                         accentColor = color
@@ -164,6 +177,20 @@ class MainActivity : ComponentActivity() {
                     onAdvancedModeChanged = { enabled ->
                         AppPreferences.setAdvancedMode(this, enabled)
                         advancedMode = enabled
+                    },
+                    onDebugModeChanged = { enabled ->
+                        AppPreferences.setDebugMode(this, enabled)
+                        debugMode = enabled
+                        // The overview reads the payload source, so it has to be
+                        // asked again: turning the switch off has to take the
+                        // local notice off that screen, and turning it on has to
+                        // put it there.
+                        installViewModel.refresh()
+                    },
+                    onDebugFolderPicked = { uri ->
+                        AppPreferences.setDebugPayloadTree(this, uri.toString())
+                        debugFolderLabel = LocalPayloadSource(this).folder()?.label
+                        installViewModel.refresh()
                     },
                     openInstaller = { profileId ->
                         val installer = Intent(this, InstallActivity::class.java)
@@ -217,9 +244,13 @@ private fun RootApp(
     accentColor: AccentColor,
     themeMode: AppThemeMode,
     advancedMode: Boolean,
+    debugMode: Boolean,
+    debugFolderLabel: String?,
     onAccentColorChanged: (AccentColor) -> Unit,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     onAdvancedModeChanged: (Boolean) -> Unit,
+    onDebugModeChanged: (Boolean) -> Unit,
+    onDebugFolderPicked: (Uri) -> Unit,
     openInstaller: (String?) -> Unit,
 ) {
     val installState by installViewModel.state.collectAsStateWithLifecycle()
@@ -322,7 +353,15 @@ private fun RootApp(
                 DialogDimAmount(0.24f)
                 Text(stringResource(R.string.install_confirm_title))
             },
-            text = { Text(stringResource(R.string.install_confirm_body)) },
+            text = {
+                // Debug mode does not download anything, so the sentence about
+                // GitHub would be the one thing on this dialog that is untrue.
+                Text(
+                    installState.localPayload?.let { folder ->
+                        stringResource(R.string.install_confirm_body_local, folder)
+                    } ?: stringResource(R.string.install_confirm_body),
+                )
+            },
             confirmButton = {
                 FilledTonalButton(onClick = {
                     showInstallConfirmation = false
@@ -387,9 +426,13 @@ private fun RootApp(
                     accentColor = accentColor,
                     themeMode = themeMode,
                     advancedMode = advancedMode,
+                    debugMode = debugMode,
+                    debugFolderLabel = debugFolderLabel,
                     onAccentColorChanged = onAccentColorChanged,
                     onThemeModeChanged = onThemeModeChanged,
                     onAdvancedModeChanged = onAdvancedModeChanged,
+                    onDebugModeChanged = onDebugModeChanged,
+                    onDebugFolderPicked = onDebugFolderPicked,
                 )
             }
         }
@@ -422,6 +465,12 @@ private fun OverviewPage(
             )
         }
         item { InstallStatusCard(installState, onInstall) }
+        // A debug run reads a file someone put on the device, with none of the
+        // checks a downloaded payload gets. Say so on the screen the run starts
+        // from, not only in the log.
+        installState.localPayload?.let { folder ->
+            item { LocalPayloadNoticeCard(folder) }
+        }
         // Only once a profile has been resolved: before that the app does not
         // know which module this device gets, and a version it made up would
         // be worse than none.
@@ -557,6 +606,45 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
                     stringResource(R.string.kernelsu_manager_open),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LocalPayloadNoticeCard(folder: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Rounded.BugReport,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.debug_local_payload_active),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    folder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    stringResource(R.string.debug_local_payload_unverified),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
         }
@@ -990,12 +1078,33 @@ private fun SettingsPage(
     accentColor: AccentColor,
     themeMode: AppThemeMode,
     advancedMode: Boolean,
+    debugMode: Boolean,
+    debugFolderLabel: String?,
     onAccentColorChanged: (AccentColor) -> Unit,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     onAdvancedModeChanged: (Boolean) -> Unit,
+    onDebugModeChanged: (Boolean) -> Unit,
+    onDebugFolderPicked: (Uri) -> Unit,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    // The tree has to stay readable across process death, so the grant is taken
+    // persistable here, where the picker's result still carries the permission
+    // to take. A folder that later stops being readable -- deleted, or its
+    // provider gone -- is reported as unset rather than as an exception, by
+    // LocalPayloadSource.folder() checking the grant is still held.
+    val folderPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
+        onDebugFolderPicked(uri)
+    }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showColorDialog by remember { mutableStateOf(false) }
     var languageMenuTop by remember { mutableStateOf(32.dp) }
@@ -1086,9 +1195,33 @@ private fun SettingsPage(
                     title = stringResource(R.string.advanced_mode),
                     description = stringResource(R.string.advanced_mode_description),
                     checked = advancedMode,
-                    position = SettingsCardPosition.GroupedSingle,
+                    position = SettingsCardPosition.Top,
                     onCheckedChange = onAdvancedModeChanged,
                 )
+                SettingsSwitchCard(
+                    icon = Icons.Rounded.BugReport,
+                    title = stringResource(R.string.debug_mode),
+                    description = stringResource(R.string.debug_mode_description),
+                    checked = debugMode,
+                    position = if (debugMode) SettingsCardPosition.Middle else SettingsCardPosition.Bottom,
+                    onCheckedChange = onDebugModeChanged,
+                )
+                // Only while the switch is on: the folder is what debug mode
+                // does, so offering it separately would suggest it does
+                // something on its own.
+                if (debugMode) {
+                    SettingsCard(
+                        icon = Icons.Rounded.Folder,
+                        title = stringResource(R.string.debug_payload_folder),
+                        description = stringResource(
+                            R.string.debug_payload_folder_description,
+                            LocalPayloadSource.MANIFEST_NAME,
+                        ),
+                        value = debugFolderLabel ?: stringResource(R.string.debug_payload_folder_unset),
+                        position = SettingsCardPosition.Bottom,
+                        onClick = { folderPicker.launch(null) },
+                    )
+                }
             }
         }
         // This app is a fork; the licence requires the original to be credited,
