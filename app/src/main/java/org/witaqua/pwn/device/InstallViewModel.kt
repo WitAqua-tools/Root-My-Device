@@ -243,6 +243,15 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 // the file it reads the answer out of is mounted over, and a reboot is
                 // the only way to clear that. See leakChannelPinned().
                 if (leakChannelPinned()) throw RunSkipped(app.getString(R.string.error_leak_channel_pinned))
+                // Debug mode on with no usable folder is its own failure, not a
+                // reason to fall back to the feed: the folder can stop being
+                // readable after it was picked -- deleted, or its grant revoked
+                // -- and a run that quietly went to the feed instead would
+                // report whatever the feed says, which on a target that is not in
+                // it reads as a network problem.
+                if (AppPreferences.debugMode(app) && debug == null) {
+                    error(app.getString(R.string.local_no_folder))
+                }
                 val target = if (debug != null) {
                     // Debug mode wins over a profile picked from the catalogue,
                     // because the folder is the only thing that can say what the
