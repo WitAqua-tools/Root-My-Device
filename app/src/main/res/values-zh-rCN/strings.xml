@@ -26,4 +26,30 @@
     <string name="kernel_mismatch_title">内核不匹配</string><string name="kernel_mismatch_body">当前内核为 %1$s，但所选配置的内核为 %2$s。运行可能导致设备停止响应或损坏。</string>
     <string name="build_mismatch_title">固件不匹配</string><string name="build_mismatch_body">当前版本是 %1$s，但所选配置适用于 %2$s。偏移量可能不兼容。</string>
     <string name="about">关于</string><string name="fork_notice">Root My Device 是 BuSung-dev 的 Root My Galaxy 的分支，依据 Apache License 2.0 使用。</string><string name="fork_upstream_app" translatable="false">Root My Galaxy</string><string name="fork_upstream_app_description">本应用所分支的原始应用</string><string name="fork_upstream_payloads" translatable="false">Root My Galaxy Payloads</string><string name="fork_upstream_payloads_description">原始设备列表与原生 payload</string>
+    <string name="debug_mode">调试模式</string>
+    <string name="debug_mode_description">从本机文件夹读取 payload，而不是已发布的 feed。用于机型适配初期。</string>
+    <string name="debug_payload_folder">本地 payload 文件夹</string>
+    <string name="debug_payload_folder_description">存放 %1$s、应用 payload 与 ksud 的文件夹</string>
+    <string name="debug_payload_folder_unset">未选择</string>
+    <string name="debug_local_payload_active">本地 payload</string>
+    <string name="debug_local_payload_unverified">从本机读取，没有下载时的任何校验</string>
+    <string name="status_reading_local">正在读取本地 payload</string>
+    <string name="status_local_failed">本地 payload 无法使用</string>
+    <string name="log_local_source">[*] 已绕过 feed：payload 读取自 %1$s</string>
+    <string name="log_local_overrides">[*] 调试模式已开启，使用本地 payload 而非配置 %1$s</string>
+    <string name="log_local_ready">[+] 本地 payload 就绪</string>
+    <string name="local_no_folder">尚未选择本地 payload 文件夹</string>
+    <string name="local_manifest_field">本地 payload 清单缺少 %1$s</string>
+    <string name="local_file_missing">所选文件夹中没有 %1$s</string>
+    <string name="local_manifest_unparsable">%1$s 中没有可读的 payload 清单</string>
+    <string name="local_device_mismatch">本地 payload 声明 %1$s 为 %2$s，但本机为 %3$s</string>
+    <string name="local_copying">正在复制 %1$s</string>
+    <string name="local_copied">已复制 %1$s（%2$d 字节）</string>
+    <string name="local_unreadable">无法从所选文件夹读取 %1$s</string>
+    <string name="local_too_large">%1$s 超出 payload 允许的大小</string>
+    <string name="local_empty">%1$s 为空</string>
+    <string name="local_not_elf">%1$s 不是 ELF 二进制</string>
+    <string name="payload_local">读取自本地文件夹，没有可检查的发布版本</string>
+    <string name="action_reload_local">重新读取</string>
+    <string name="install_confirm_body_local">调试模式已开启：exploit 与 KernelSU payload 从本机 %1$s 读取，不会下载。</string>
 </resources>
