@@ -26,4 +26,30 @@
     <string name="kernel_mismatch_title">カーネルが一致しません</string><string name="kernel_mismatch_body">現在のカーネルは%1$sですが、選択したプロファイルのカーネルは%2$sです。実行すると端末が停止または破損する可能性があります。</string>
     <string name="build_mismatch_title">ファームウェアが一致しません</string><string name="build_mismatch_body">現在のビルドは%1$sですが、選択したプロファイルは%2$s用です。オフセットに互換性がない可能性があります。</string>
     <string name="about">について</string><string name="fork_notice">Root My Device は BuSung-dev による Root My Galaxy のフォークで、Apache License 2.0 のもとで利用しています。</string><string name="fork_upstream_app" translatable="false">Root My Galaxy</string><string name="fork_upstream_app_description">フォーク元のアプリケーション</string><string name="fork_upstream_payloads" translatable="false">Root My Galaxy Payloads</string><string name="fork_upstream_payloads_description">フォーク元のデバイス一覧とネイティブpayload</string>
+    <string name="debug_mode">デバッグモード</string>
+    <string name="debug_mode_description">配信されている feed ではなく、本体のフォルダから payload を読み込みます。機種の立ち上げ用です。</string>
+    <string name="debug_payload_folder">ローカル payload フォルダ</string>
+    <string name="debug_payload_folder_description">%1$s・アプリ用 payload・ksud を置いたフォルダ</string>
+    <string name="debug_payload_folder_unset">未選択</string>
+    <string name="debug_local_payload_active">ローカル payload</string>
+    <string name="debug_local_payload_unverified">本体から読み込み。ダウンロード時の検証は一切ありません</string>
+    <string name="status_reading_local">ローカル payload を読み込み中</string>
+    <string name="status_local_failed">ローカル payload が使えません</string>
+    <string name="log_local_source">[*] feed をバイパス: payload を %1$s から読み込み</string>
+    <string name="log_local_overrides">[*] デバッグモードが有効なため、プロファイル %1$s ではなくローカル payload を使用します</string>
+    <string name="log_local_ready">[+] ローカル payload の準備完了</string>
+    <string name="local_no_folder">ローカル payload フォルダが未選択です</string>
+    <string name="local_manifest_field">ローカル payload の manifest に %1$s がありません</string>
+    <string name="local_file_missing">選択したフォルダに %1$s がありません</string>
+    <string name="local_manifest_unparsable">%1$s に読み取れる payload manifest がありません</string>
+    <string name="local_device_mismatch">ローカル payload は %1$s が %2$s ですが、この端末は %3$s です</string>
+    <string name="local_copying">%1$s をコピー中</string>
+    <string name="local_copied">%1$s をコピーしました (%2$d バイト)</string>
+    <string name="local_unreadable">選択したフォルダから %1$s を読み取れません</string>
+    <string name="local_too_large">%1$s が payload の上限サイズを超えています</string>
+    <string name="local_empty">%1$s が空です</string>
+    <string name="local_not_elf">%1$s は ELF バイナリではありません</string>
+    <string name="payload_local">ローカルフォルダから読み込み。確認するリリースはありません</string>
+    <string name="action_reload_local">再読み込み</string>
+    <string name="install_confirm_body_local">デバッグモードが有効です。exploit と KernelSU payload は本体の %1$s から読み込み、ダウンロードはしません。</string>
 </resources>

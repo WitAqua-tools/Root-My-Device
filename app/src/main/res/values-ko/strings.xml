@@ -27,4 +27,30 @@
     <string name="kernel_mismatch_title">커널이 일치하지 않습니다</string><string name="kernel_mismatch_body">현재 커널은 %1$s이지만 선택한 프로필의 커널은 %2$s입니다. 실행하면 기기가 멈추거나 손상될 수 있습니다.</string>
     <string name="build_mismatch_title">빌드가 일치하지 않습니다</string><string name="build_mismatch_body">현재 빌드는 %1$s이지만 선택한 프로필은 %2$s용입니다. 오프셋이 호환되지 않을 수 있습니다.</string>
     <string name="about">정보</string><string name="fork_notice">Root My Device는 BuSung-dev의 Root My Galaxy를 포크한 것으로, Apache License 2.0에 따라 사용합니다.</string><string name="fork_upstream_app" translatable="false">Root My Galaxy</string><string name="fork_upstream_app_description">이 앱이 포크한 원본 애플리케이션</string><string name="fork_upstream_payloads" translatable="false">Root My Galaxy Payloads</string><string name="fork_upstream_payloads_description">원본 기기 목록과 네이티브 payload</string>
+    <string name="debug_mode">디버그 모드</string>
+    <string name="debug_mode_description">배포된 피드가 아니라 기기 내 폴더에서 페이로드를 읽습니다. 기기 초기 이식용입니다.</string>
+    <string name="debug_payload_folder">로컬 페이로드 폴더</string>
+    <string name="debug_payload_folder_description">%1$s, 앱 페이로드, ksud 가 있는 폴더</string>
+    <string name="debug_payload_folder_unset">선택되지 않음</string>
+    <string name="debug_local_payload_active">로컬 페이로드</string>
+    <string name="debug_local_payload_unverified">기기에서 읽었으며, 다운로드 시의 검증은 전혀 없습니다</string>
+    <string name="status_reading_local">로컬 페이로드를 읽는 중</string>
+    <string name="status_local_failed">로컬 페이로드를 사용할 수 없습니다</string>
+    <string name="log_local_source">[*] 피드 우회: %1$s 에서 페이로드를 읽었습니다</string>
+    <string name="log_local_overrides">[*] 디버그 모드가 켜져 있어 프로필 %1$s 대신 로컬 페이로드를 사용합니다</string>
+    <string name="log_local_ready">[+] 로컬 페이로드 준비 완료</string>
+    <string name="local_no_folder">로컬 페이로드 폴더가 선택되지 않았습니다</string>
+    <string name="local_manifest_field">로컬 페이로드 매니페스트에 %1$s 가 없습니다</string>
+    <string name="local_file_missing">선택한 폴더에 %1$s 가 없습니다</string>
+    <string name="local_manifest_unparsable">%1$s 에 읽을 수 있는 페이로드 매니페스트가 없습니다</string>
+    <string name="local_device_mismatch">로컬 페이로드는 %1$s 가 %2$s 이지만 이 기기는 %3$s 입니다</string>
+    <string name="local_copying">%1$s 복사 중</string>
+    <string name="local_copied">%1$s 복사 완료 (%2$d 바이트)</string>
+    <string name="local_unreadable">선택한 폴더에서 %1$s 를 읽을 수 없습니다</string>
+    <string name="local_too_large">%1$s 가 페이로드 크기 상한을 초과합니다</string>
+    <string name="local_empty">%1$s 가 비어 있습니다</string>
+    <string name="local_not_elf">%1$s 는 ELF 바이너리가 아닙니다</string>
+    <string name="payload_local">로컬 폴더에서 읽었으므로 확인할 릴리스가 없습니다</string>
+    <string name="action_reload_local">다시 읽기</string>
+    <string name="install_confirm_body_local">디버그 모드가 켜져 있습니다. exploit 과 KernelSU 페이로드를 기기의 %1$s 에서 읽고 다운로드하지 않습니다.</string>
 </resources>

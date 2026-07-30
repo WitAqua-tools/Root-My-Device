@@ -58,6 +58,13 @@ data class InstallUiState(
      * been resolved -- no network, or no entry for this device.
      */
     val kernelSu: KernelSuArtifact? = null,
+    /**
+     * The folder a debug run reads its payload from, when debug mode is on and
+     * one is set. Non-null means the feed is being bypassed, which the screen
+     * says out loud: a run from a local file has had none of the checks a
+     * downloaded one has.
+     */
+    val localPayload: String? = null,
 ) {
     val busy: Boolean
         get() = phase in setOf(
@@ -87,6 +94,7 @@ private data class CommandResult(val code: Int, val output: String)
 class InstallViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application
     private val repository = PayloadRepository(application)
+    private val localSource = LocalPayloadSource(application)
     private val historyStore = InstallHistoryStore(application)
     private val mutableState = MutableStateFlow(InstallUiState())
     private val mutableHistory = MutableStateFlow(historyStore.closeInterruptedRuns())
@@ -106,13 +114,51 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         refresh()
     }
 
+    /**
+     * The folder a debug run would read from, or null for the ordinary feed
+     * path. Both halves have to hold: the switch, and a folder whose read
+     * permission this app still has. Asked at the moment it is used rather than
+     * cached, because either half can change between one run and the next.
+     */
+    private fun debugFolder(): LocalPayloadFolder? =
+        if (AppPreferences.debugMode(app)) localSource.folder() else null
+
     fun refresh() {
         if (installJob?.isActive == true) return
         mutableHistory.value = historyStore.prune(HISTORY_LIMIT, activeHistoryEntry?.id)
         discoveryJob?.cancel()
         discoveryJob = viewModelScope.launch(Dispatchers.IO) {
             val probe = NativeProbe.run()
+            val debug = debugFolder()
             val next = when {
+                // Debug mode answers this screen without the network, because the
+                // profile it would look for is the one deliberately not in the
+                // feed. A folder that does not hold a payload is reported here
+                // rather than at the start of a run.
+                debug != null -> try {
+                    val target = localSource.resolve()
+                    val installed = detectInstalled()
+                    InstallUiState(
+                        phase = if (installed) InstallPhase.Installed else InstallPhase.Ready,
+                        message = app.getString(
+                            if (installed) R.string.status_ksu_active else R.string.status_not_installed,
+                        ),
+                        probeOutput = probe,
+                        log = "$probe\n${app.getString(R.string.log_profile, target.profile.profileId)}" +
+                            "\n${app.getString(R.string.log_local_source, debug.label)}",
+                        latestPayloadTag = target.releaseTag,
+                        kernelSu = target.profile.kernelSu,
+                        localPayload = debug.label,
+                    )
+                } catch (error: Throwable) {
+                    InstallUiState(
+                        phase = InstallPhase.Failed,
+                        message = app.getString(R.string.status_local_failed),
+                        probeOutput = probe,
+                        log = "$probe\n[-] ${error.message ?: error.javaClass.simpleName}",
+                        localPayload = debug.label,
+                    )
+                }
                 detectInstalled() -> InstallUiState(
                     phase = InstallPhase.Installed,
                     message = app.getString(R.string.status_ksu_active),
@@ -181,6 +227,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         discoveryJob?.cancel()
         payloadCheckJob?.cancel()
         installJob = viewModelScope.launch(Dispatchers.IO) {
+            val debug = debugFolder()
             mutableState.value = InstallUiState(
                 phase = InstallPhase.Checking,
                 probeOutput = mutableState.value.probeOutput,
@@ -188,6 +235,7 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 // same profile again, and the manager it needs does not stop
                 // being true while the install is in flight.
                 kernelSu = mutableState.value.kernelSu,
+                localPayload = debug?.label,
             )
             startHistory()
             try {
@@ -195,11 +243,33 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 // the file it reads the answer out of is mounted over, and a reboot is
                 // the only way to clear that. See leakChannelPinned().
                 if (leakChannelPinned()) throw RunSkipped(app.getString(R.string.error_leak_channel_pinned))
-                setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
-                val target = if (profileId == null) {
-                    repository.resolveTarget(DeviceSnapshot.current())
+                // Debug mode on with no usable folder is its own failure, not a
+                // reason to fall back to the feed: the folder can stop being
+                // readable after it was picked -- deleted, or its grant revoked
+                // -- and a run that quietly went to the feed instead would
+                // report whatever the feed says, which on a target that is not in
+                // it reads as a network problem.
+                if (AppPreferences.debugMode(app) && debug == null) {
+                    error(app.getString(R.string.local_no_folder))
+                }
+                val target = if (debug != null) {
+                    // Debug mode wins over a profile picked from the catalogue,
+                    // because the folder is the only thing that can say what the
+                    // local files are for. Said out loud rather than silently
+                    // dropping the selection.
+                    if (profileId != null) {
+                        appendLog(app.getString(R.string.log_local_overrides, profileId))
+                    }
+                    setPhase(InstallPhase.Checking, app.getString(R.string.status_reading_local))
+                    appendLog(app.getString(R.string.log_local_source, debug.label))
+                    localSource.resolve()
                 } else {
-                    repository.resolveTarget(profileId)
+                    setPhase(InstallPhase.Checking, app.getString(R.string.status_checking_github))
+                    if (profileId == null) {
+                        repository.resolveTarget(DeviceSnapshot.current())
+                    } else {
+                        repository.resolveTarget(profileId)
+                    }
                 }
                 mutableState.value = mutableState.value.copy(
                     payloadTag = target.releaseTag,
@@ -209,8 +279,16 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
                 appendLog(app.getString(R.string.log_payload_release, target.releaseTag))
 
                 setPhase(InstallPhase.Downloading, app.getString(R.string.status_downloading_payload))
-                val payloads = repository.download(target) { appendLog("[*] $it") }
-                appendLog(app.getString(R.string.log_download_verified))
+                val payloads = if (debug != null) {
+                    localSource.load(target) { appendLog("[*] $it") }
+                } else {
+                    repository.download(target) { appendLog("[*] $it") }
+                }
+                appendLog(
+                    app.getString(
+                        if (debug != null) R.string.log_local_ready else R.string.log_download_verified,
+                    ),
+                )
 
                 setPhase(InstallPhase.Exploiting, app.getString(R.string.status_exploit_running))
                 executeExploit(payloads.exploit)
@@ -250,6 +328,10 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
      */
     private fun startPayloadCheck() {
         val used = mutableState.value.payloadTag ?: return
+        // A local payload has no release to be current or outdated against, and
+        // asking GitHub what it publishes would answer a question this run did
+        // not pose.
+        if (mutableState.value.localPayload != null) return
         payloadCheckJob?.cancel()
         payloadCheckJob = viewModelScope.launch(Dispatchers.IO) {
             val latest = runCatching { repository.latestReleaseTag(forceRefresh = true) }.getOrNull()
@@ -280,18 +362,30 @@ class InstallViewModel(application: Application) : AndroidViewModel(application)
         if (mutableState.value.payloadState == PayloadState.Fetching) return
         viewModelScope.launch(Dispatchers.IO) {
             val previous = mutableState.value.payloadState
+            val debug = debugFolder()
             mutableState.value = mutableState.value.copy(payloadState = PayloadState.Fetching)
             try {
-                val target = if (profileId == null) {
+                // In debug mode this re-reads the folder instead of the release,
+                // which is what the button means there: pick up a payload that
+                // was just rebuilt into it, without going through the picker
+                // again.
+                val target = if (debug != null) {
+                    localSource.resolve()
+                } else if (profileId == null) {
                     repository.resolveTarget(DeviceSnapshot.current(), forceRefresh = true)
                 } else {
                     repository.resolveTarget(profileId, forceRefresh = true)
                 }
                 appendLog(app.getString(R.string.log_payload_fetching, target.releaseTag))
-                repository.download(target) { appendLog("[*] $it") }
+                if (debug != null) {
+                    localSource.load(target) { appendLog("[*] $it") }
+                } else {
+                    repository.download(target) { appendLog("[*] $it") }
+                }
                 mutableState.value = mutableState.value.copy(
                     latestPayloadTag = target.releaseTag,
                     payloadState = PayloadState.Fetched,
+                    localPayload = debug?.label,
                 )
                 appendLog(app.getString(R.string.log_payload_fetched, target.releaseTag))
             } catch (error: Throwable) {
