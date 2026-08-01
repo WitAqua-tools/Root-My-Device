@@ -30,11 +30,10 @@ data class ResolvedTarget(
  * The payload release the feed and every artifact are read from. The payload
  * repository builds its artifacts in CI and publishes them under a tag that is
  * unique to that run, so a resolved release is an immutable set: the assets
- * behind [downloadPrefix] never change once the release exists.
+ * behind [tag] never change once the release exists.
  */
 private data class PayloadRelease(
     val tag: String,
-    val downloadPrefix: String,
     val feedUrl: String,
 )
 
@@ -137,7 +136,6 @@ class PayloadRepository(private val context: Context) {
         val release = JSONObject(response.toString(Charsets.UTF_8))
         val tag = release.getString("tag_name")
         require(tag.matches(TAG_PATTERN)) { context.getString(R.string.repo_release_invalid) }
-        val prefix = "$RELEASE_DOWNLOAD_REPOSITORY/$tag/"
         val assets = release.getJSONArray("assets")
         val feedUrl = (0 until assets.length())
             .map(assets::getJSONObject)
@@ -147,8 +145,8 @@ class PayloadRepository(private val context: Context) {
         // The asset URL comes back from the API, but it is still what every
         // subsequent download is anchored to, so hold it to the same rule the
         // feed's own URLs are held to below.
-        require(feedUrl.startsWith(prefix)) { context.getString(R.string.repo_url_invalid) }
-        return PayloadRelease(tag = tag, downloadPrefix = prefix, feedUrl = feedUrl)
+        require(isReleaseAsset(feedUrl, tag)) { context.getString(R.string.repo_url_invalid) }
+        return PayloadRelease(tag = tag, feedUrl = feedUrl)
     }
 
     /**
@@ -158,11 +156,23 @@ class PayloadRepository(private val context: Context) {
      * download away from the release it was published in.
      */
     private fun requireReleaseAsset(url: String, release: PayloadRelease): String {
-        require(url.startsWith(release.downloadPrefix)) {
+        require(isReleaseAsset(url, release.tag)) {
             context.getString(R.string.repo_url_invalid)
         }
         return url
     }
+
+    /**
+     * GitHub spells the owner and the repository back the way they are
+     * registered, which is not necessarily the way they are written here: it
+     * resolves either spelling, because a name is case-insensitive to it. So
+     * the names above the tag are matched the way GitHub matches them. The tag
+     * is not a name GitHub folds, and it is what pins a run to one immutable
+     * set of assets, so it is matched as written.
+     */
+    private fun isReleaseAsset(url: String, tag: String): Boolean =
+        url.startsWith(RELEASE_DOWNLOAD_REPOSITORY, ignoreCase = true) &&
+            url.startsWith("/$tag/", RELEASE_DOWNLOAD_REPOSITORY.length)
 
     private fun downloadBytes(url: String, maximum: Int, forceRefresh: Boolean = false): ByteArray {
         val connection = open(url, forceRefresh)
@@ -203,7 +213,7 @@ class PayloadRepository(private val context: Context) {
         }
 
     companion object {
-        private const val PAYLOAD_REPOSITORY = "Witaqua-tools/Root-My-Device-Payloads"
+        private const val PAYLOAD_REPOSITORY = "WitAqua-tools/Root-My-Device-Payloads"
         private const val LATEST_RELEASE_API_URL =
             "https://api.github.com/repos/$PAYLOAD_REPOSITORY/releases/latest"
         private const val RELEASE_DOWNLOAD_REPOSITORY =

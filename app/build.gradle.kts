@@ -15,8 +15,8 @@ android {
         applicationId = "org.witaqua.pwn.device"
         minSdk = 33
         targetSdk = 36
-        versionCode = 11
-        versionName = "0.0.4"
+        versionCode = 12
+        versionName = "0.0.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
