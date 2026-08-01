@@ -1740,7 +1740,7 @@ private fun SideChoiceMenu(
 
 private const val MENU_EXIT_ANIMATION_MILLIS = 180
 private const val MENU_EXIT_WAIT_MILLIS = 200L
-private const val ROOT_MY_DEVICE_URL = "https://github.com/Witaqua-tools/Root-My-Device"
+private const val ROOT_MY_DEVICE_URL = "https://github.com/WitAqua-tools/Root-My-Device"
 
 // The projects this one is forked from, credited in Settings > About.
 private const val UPSTREAM_OWNER = "BuSung-dev"
