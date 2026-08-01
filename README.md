@@ -34,6 +34,48 @@ The app automatically selects an exact match for the kernel release,
 full build display ID, SDK, ABI, and page size. Advanced mode can select a
 profile manually and presents separate kernel-release and build warnings.
 
+### Debug mode
+
+A profile stays out of the feed until the app's own route has completed on that
+device, and the feed is what the app reads — so the run that would establish
+whether that route works has nothing to download. Debug mode is for that case:
+a separate switch from advanced mode, off by default, that reads the payload out
+of a folder on the device. Turning it on reveals the folder to point it at,
+which holds three files at its top level:
+
+```text
+profile.json
+cve-2026-43499-app.release.so
+ksud
+```
+
+The two artifacts are what the payload repository builds, and those names are
+the defaults. A daemon carried under the `ksud-<id>` name that repository's
+releases use has to be renamed, or named in the manifest as `kernelsu.name`
+(`exploit.name` for the payload).
+
+`profile.json` carries only what cannot be taken from the device, under the
+feed's own key names:
+
+```json
+{
+  "profileId": "xig07-jp-OS3.0.7.0.WNEJPKD",
+  "kernelsu": { "kmi": "android14-6.1", "managerPackage": "me.weishu.kernelsu" }
+}
+```
+
+Those three fields are required. Every field the feed matches a device on —
+kernel release, build display ID, SDK, ABI, page size — comes from *this* device
+instead, since a local profile is not matched against anything. Naming
+`kernelRelease` or `buildDisplay` anyway is optional and checked against the
+device, which is what makes it safe to keep several targets' folders side by
+side.
+
+None of the checks a downloaded payload gets apply here, and the app says so. A
+run from a folder is marked as one in the log, in the overview, and as
+`local:<folder>` in its history entry, so no finished run can be read afterwards
+as a feed run.
+
 ## Build
 
 Requirements:
