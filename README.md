@@ -1,9 +1,7 @@
 # Root My Device
 
 A fork of [BuSung-dev/Root-My-Galaxy](https://github.com/BuSung-dev/Root-My-Galaxy),
-the work of [BuSung-dev](https://github.com/BuSung-dev). This repository keeps
-the original Apache License 2.0 — see [LICENSE](LICENSE). The payload side is a
-fork of [BuSung-dev/Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads).
+under the Apache License 2.0 — see [LICENSE](LICENSE) and [Credits](#credits).
 
 <img width="108" height="108" alt="sprout_icon_108" src="https://github.com/user-attachments/assets/2ba0e360-0876-489c-b256-f75df7589785" />
 
@@ -133,3 +131,26 @@ shared library would not), and it must be **named `lib*.so`** with
 where they are set.
 
 Use only on devices you own or are explicitly authorized to test.
+
+## Credits
+
+### This application
+
+A fork of [Root-My-Galaxy](https://github.com/BuSung-dev/Root-My-Galaxy) by
+[BuSung-dev](https://github.com/BuSung-dev), which keeps the original Apache
+License 2.0 — see [LICENSE](LICENSE).
+
+### The payloads it runs
+
+This application downloads and runs what
+[Root-My-Device-Payloads](https://github.com/Witaqua-tools/Root-My-Device-Payloads)
+publishes — itself a fork of
+[Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads)
+by [BuSung-dev](https://github.com/BuSung-dev).
+
+Nothing a payload is owed is in this repository, and nothing of it is repeated
+here. KernelSU — what a successful run loads — each core's upstream, the source
+those cores descend from, and the licence terms of everything built there are
+credited in the
+[payload repository's README](https://github.com/Witaqua-tools/Root-My-Device-Payloads#readme),
+which is where a payload-side credit belongs and where those artifacts are built.
