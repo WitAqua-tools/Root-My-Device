@@ -27,6 +27,23 @@ data class KernelSuArtifact(
     val managerVersionCode: Int?,
     val managerVersionName: String?,
     val managerUrl: String?,
+    /**
+     * Whether [managerUrl] is the only manager this target works with.
+     *
+     * Most targets pair with the manager the pinned KernelSU released, and any
+     * build of it will do. Some cannot: where the module's ksud carries
+     * patches, the official manager replaces `/data/adb/ksud` with the copy
+     * bundled in its own APK the first time it runs and puts an unpatched
+     * daemon back, without saying so anywhere. Such a target names a manager
+     * built with those patches, and this says the difference is not cosmetic --
+     * installing the wrong one is how a working root goes quietly wrong later.
+     *
+     * A manager built elsewhere is also signed elsewhere, so it cannot be
+     * installed over the official one, and [managerNote] is what the screen has
+     * to explain that with.
+     */
+    val managerCustom: Boolean,
+    val managerNote: String?,
 )
 
 data class TargetProfile(
@@ -104,6 +121,16 @@ data class SupportManifest(
                                 managerUrl = kernelSu
                                     .optString("managerUrl")
                                     .takeIf { it.startsWith("https://") },
+                                // Only meaningful with somewhere to send the
+                                // user: a feed that says a custom manager is
+                                // required but names no download would leave
+                                // the screen warning about a thing it cannot
+                                // offer.
+                                managerCustom = kernelSu.optBoolean("managerCustom") &&
+                                    kernelSu.optString("managerUrl").startsWith("https://"),
+                                managerNote = kernelSu
+                                    .optString("managerNote")
+                                    .takeIf { it.isNotEmpty() },
                             ),
                         ),
                     )

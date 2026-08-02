@@ -130,6 +130,9 @@ class LocalPayloadSource(private val context: Context) {
                     .takeIf(String::isNotBlank),
                 managerUrl = kernelSuJson.optString("managerUrl")
                     .takeIf { it.startsWith("https://") },
+                managerCustom = kernelSuJson.optBoolean("managerCustom") &&
+                    kernelSuJson.optString("managerUrl").startsWith("https://"),
+                managerNote = kernelSuJson.optString("managerNote").takeIf(String::isNotBlank),
             ),
         )
         return ResolvedTarget(releaseTag = releaseTag(folder), profile = profile)

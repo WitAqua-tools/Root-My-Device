@@ -573,13 +573,20 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
         shape = expressiveClickableCardShape(interactionSource),
         interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            // A manager only this build works with is not the same errand as
+            // fetching the matching upstream release, and a card that looked
+            // identical would read as one.
+            containerColor = if (kernelSu.managerCustom) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
         ),
     ) {
         Row(
             modifier = Modifier.padding(18.dp),
             horizontalArrangement = Arrangement.spacedBy(13.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
         ) {
             Icon(
                 Icons.Rounded.Download,
@@ -588,7 +595,13 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    stringResource(R.string.kernelsu_manager_required),
+                    stringResource(
+                        if (kernelSu.managerCustom) {
+                            R.string.kernelsu_manager_custom_required
+                        } else {
+                            R.string.kernelsu_manager_required
+                        },
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
@@ -602,10 +615,30 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Why this build needs its own, in the feed's words rather than
+                // the app's: the app cannot know the reason, and a warning with
+                // no reason reads as a nag to be dismissed.
+                kernelSu.managerNote?.let { note ->
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+                if (kernelSu.managerCustom) {
+                    Text(
+                        stringResource(R.string.kernelsu_manager_custom_replace),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
                 Text(
                     stringResource(R.string.kernelsu_manager_open),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
         }
