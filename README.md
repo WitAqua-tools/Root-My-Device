@@ -146,15 +146,11 @@ This application downloads and runs what
 [Root-My-Device-Payloads](https://github.com/Witaqua-tools/Root-My-Device-Payloads)
 publishes — itself a fork of
 [Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads)
-by [BuSung-dev](https://github.com/BuSung-dev). Nothing credited below is in this
-repository.
+by [BuSung-dev](https://github.com/BuSung-dev).
 
-- [KernelSU](https://github.com/tiann/KernelSU) by
-  [tiann](https://github.com/tiann) — what a successful run loads. It is built
-  there from a pinned submodule, which is also where its licence terms are
-  recorded.
-
-Everything else a payload is owed — each core's upstream, the source those cores
-descend from, and the licence terms of what is built there — is credited in the
+Nothing a payload is owed is in this repository, and nothing of it is repeated
+here. KernelSU — what a successful run loads — each core's upstream, the source
+those cores descend from, and the licence terms of everything built there are
+credited in the
 [payload repository's README](https://github.com/Witaqua-tools/Root-My-Device-Payloads#readme),
-which is where a payload-side credit belongs. Only KernelSU is repeated here.
+which is where a payload-side credit belongs and where those artifacts are built.
