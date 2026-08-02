@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-build-only override: let the installer be started from adb.
+
+  The installer is not exported in a release build and must not become so. It
+  takes root on the device, and an exported activity is startable by any app.
+
+  In a debug build it is worth exporting, because on some devices there is no
+  other way to run the application route at all. On Quest 3 the 2D panel is a
+  window the VR shell injects touches into through its own path: `input tap`
+  and `input keyevent` reach the window that has focus and nothing happens, so
+  every application-route run needs a person wearing the headset to press one
+  card. That makes the route the application actually uses, the one whose
+  failure mode is a reboot, the least-tested path in the project.
+
+  A debug build is already `run-as`-able, so its data directory is already open
+  to anyone with adb; being startable from adb does not widen that.
+
+  InstallActivity only auto-runs when it is given EXTRA_INSTALL_REQUEST_ID, a
+  string extra named install_request_id. See docs/tools/quest3/app_run_fire.sh
+  for the adb line (it cannot be written here: an XML comment may not contain
+  a double hyphen, and `am start` takes its extras with one).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name=".InstallActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+</manifest>
