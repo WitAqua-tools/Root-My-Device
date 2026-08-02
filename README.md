@@ -153,12 +153,8 @@ repository.
   [tiann](https://github.com/tiann) — what a successful run loads. It is built
   there from a pinned submodule, which is also where its licence terms are
   recorded.
-- [IonStackQuest3](https://github.com/grayawa/IonStackQuest3) by
-  [grayawa](https://github.com/grayawa) — the IonStack CVE-2026-43499 work
-  adapted to the Meta Quest 3, and the upstream of the exploit core (`core510`)
-  that repository carries for that device.
 
 Everything else a payload is owed — each core's upstream, the source those cores
 descend from, and the licence terms of what is built there — is credited in the
 [payload repository's README](https://github.com/Witaqua-tools/Root-My-Device-Payloads#readme),
-which is where a payload-side credit belongs. Only these two are repeated here.
+which is where a payload-side credit belongs. Only KernelSU is repeated here.
