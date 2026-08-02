@@ -1,9 +1,7 @@
 # Root My Device
 
 A fork of [BuSung-dev/Root-My-Galaxy](https://github.com/BuSung-dev/Root-My-Galaxy),
-the work of [BuSung-dev](https://github.com/BuSung-dev). This repository keeps
-the original Apache License 2.0 — see [LICENSE](LICENSE). The payload side is a
-fork of [BuSung-dev/Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads).
+under the Apache License 2.0 — see [LICENSE](LICENSE) and [Credits](#credits).
 
 <img width="108" height="108" alt="sprout_icon_108" src="https://github.com/user-attachments/assets/2ba0e360-0876-489c-b256-f75df7589785" />
 
@@ -133,3 +131,34 @@ shared library would not), and it must be **named `lib*.so`** with
 where they are set.
 
 Use only on devices you own or are explicitly authorized to test.
+
+## Credits
+
+### This application
+
+A fork of [Root-My-Galaxy](https://github.com/BuSung-dev/Root-My-Galaxy) by
+[BuSung-dev](https://github.com/BuSung-dev), which keeps the original Apache
+License 2.0 — see [LICENSE](LICENSE).
+
+### The payloads it runs
+
+This application downloads and runs what
+[Root-My-Device-Payloads](https://github.com/Witaqua-tools/Root-My-Device-Payloads)
+publishes — itself a fork of
+[Root-My-Galaxy-Payloads](https://github.com/BuSung-dev/Root-My-Galaxy-Payloads)
+by [BuSung-dev](https://github.com/BuSung-dev). Nothing credited below is in this
+repository.
+
+- [KernelSU](https://github.com/tiann/KernelSU) by
+  [tiann](https://github.com/tiann) — what a successful run loads. It is built
+  there from a pinned submodule, which is also where its licence terms are
+  recorded.
+- [IonStackQuest3](https://github.com/grayawa/IonStackQuest3) by
+  [grayawa](https://github.com/grayawa) — the IonStack CVE-2026-43499 work
+  adapted to the Meta Quest 3, and the upstream of the exploit core (`core510`)
+  that repository carries for that device.
+
+Everything else a payload is owed — each core's upstream, the source those cores
+descend from, and the licence terms of what is built there — is credited in the
+[payload repository's README](https://github.com/Witaqua-tools/Root-My-Device-Payloads#readme),
+which is where a payload-side credit belongs. Only these two are repeated here.
