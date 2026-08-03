@@ -235,8 +235,15 @@ private val languageOptions = listOf(
 // Only reached for a feed published before the manager travelled in it. Which
 // manager a module pairs with is a property of the build that produced it, so
 // the feed is where it belongs; this is the last answer rather than the first.
+//
+// It is the releases page and not an APK on purpose. Every module the feed
+// carries today is built to accept one manager and it is not upstream's -- the
+// certificate and the package name are compiled into the module -- so handing
+// someone upstream's release here would install a manager the kernel never
+// finds, with nothing on the device to say why. A feed too old to name its
+// manager is a feed too old to be trusted to pick one.
 private const val KERNEL_SU_MANAGER_URL =
-    "https://github.com/tiann/KernelSU/releases/download/v3.2.5/KernelSU_v3.2.5_32525-release.apk"
+    "https://github.com/WitAqua-tools/Root-My-Device-KSU/releases"
 
 @Composable
 private fun RootApp(
@@ -573,13 +580,20 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
         shape = expressiveClickableCardShape(interactionSource),
         interactionSource = interactionSource,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            // A manager only this build works with is not the same errand as
+            // fetching the matching upstream release, and a card that looked
+            // identical would read as one.
+            containerColor = if (kernelSu.managerCustom) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            },
         ),
     ) {
         Row(
             modifier = Modifier.padding(18.dp),
             horizontalArrangement = Arrangement.spacedBy(13.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
         ) {
             Icon(
                 Icons.Rounded.Download,
@@ -588,7 +602,13 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    stringResource(R.string.kernelsu_manager_required),
+                    stringResource(
+                        if (kernelSu.managerCustom) {
+                            R.string.kernelsu_manager_custom_required
+                        } else {
+                            R.string.kernelsu_manager_required
+                        },
+                    ),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
@@ -602,10 +622,30 @@ private fun KernelSuManagerCard(kernelSu: KernelSuArtifact) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                // Why this build needs its own, in the feed's words rather than
+                // the app's: the app cannot know the reason, and a warning with
+                // no reason reads as a nag to be dismissed.
+                kernelSu.managerNote?.let { note ->
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
+                if (kernelSu.managerCustom) {
+                    Text(
+                        stringResource(R.string.kernelsu_manager_custom_replace),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
                 Text(
                     stringResource(R.string.kernelsu_manager_open),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
         }

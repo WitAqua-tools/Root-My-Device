@@ -15,7 +15,7 @@
     <string name="action_delete">Delete</string>
     <string name="install_ksu_running">KernelSU module is running</string>
     <string name="kernelsu_manager_required">Required KernelSU Manager</string>
-    <string name="kernelsu_manager_open">Tap to open its download page</string>
+    <string name="kernelsu_manager_open">Tap to open its download page</string><string name="kernelsu_manager_custom_required">This build needs its own KernelSU Manager</string><string name="kernelsu_manager_custom_replace">Signed and named differently from the official manager, which this build does not accept. Both can be installed.</string>
     <string name="install_tap_retry">Tap to try again</string>
     <string name="install_tap_start">Tap to install KernelSU</string>
     <string name="device">Device</string>
