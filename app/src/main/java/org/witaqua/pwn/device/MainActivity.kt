@@ -235,8 +235,15 @@ private val languageOptions = listOf(
 // Only reached for a feed published before the manager travelled in it. Which
 // manager a module pairs with is a property of the build that produced it, so
 // the feed is where it belongs; this is the last answer rather than the first.
+//
+// It is the releases page and not an APK on purpose. Every module the feed
+// carries today is built to accept one manager and it is not upstream's -- the
+// certificate and the package name are compiled into the module -- so handing
+// someone upstream's release here would install a manager the kernel never
+// finds, with nothing on the device to say why. A feed too old to name its
+// manager is a feed too old to be trusted to pick one.
 private const val KERNEL_SU_MANAGER_URL =
-    "https://github.com/tiann/KernelSU/releases/download/v3.2.5/KernelSU_v3.2.5_32525-release.apk"
+    "https://github.com/WitAqua-tools/Root-My-Device-KSU/releases"
 
 @Composable
 private fun RootApp(
